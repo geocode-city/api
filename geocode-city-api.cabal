@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e089d26e0ac25a2cd295120099dfc513ca54b34db39fb328b872523eccec57bf
+-- hash: 1beca677ff32d2077e16dd7ec659b7cf0fdca237f8e9154e3125227f4826ba33
 
 name:           geocode-city-api
 version:        0.1.0.0
@@ -37,8 +37,21 @@ library
       src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
   build-depends:
-      base >=4.11 && <10
-    , rio >=0.1.12.0
+      aeson
+    , base >=4.11 && <10
+    , envy
+    , http-api-data
+    , http-types
+    , opaleye >=0.7.1.0 && <0.8
+    , postgresql-simple
+    , postgresql-simple-migration
+    , rio >=0.1.19.0
+    , servant
+    , servant-server
+    , servant-swagger
+    , text
+    , wai
+    , warp
   default-language: Haskell2010
 
 executable geocode-city-api-exe
@@ -49,10 +62,23 @@ executable geocode-city-api-exe
       app
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.11 && <10
+      aeson
+    , base >=4.11 && <10
+    , envy
     , geocode-city-api
+    , http-api-data
+    , http-types
+    , opaleye >=0.7.1.0 && <0.8
     , optparse-simple
-    , rio >=0.1.12.0
+    , postgresql-simple
+    , postgresql-simple-migration
+    , rio >=0.1.19.0
+    , servant
+    , servant-server
+    , servant-swagger
+    , text
+    , wai
+    , warp
   default-language: Haskell2010
 
 test-suite geocode-city-api-test
@@ -65,8 +91,24 @@ test-suite geocode-city-api-test
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.11 && <10
+      aeson
+    , base >=4.11 && <10
+    , envy
     , geocode-city-api
     , hspec
-    , rio >=0.1.12.0
+    , hspec-wai
+    , hspec-wai-json
+    , http-api-data
+    , http-types
+    , opaleye >=0.7.1.0 && <0.8
+    , postgresql-simple
+    , postgresql-simple-migration
+    , rio >=0.1.19.0
+    , servant
+    , servant-quickcheck
+    , servant-server
+    , servant-swagger
+    , text
+    , wai
+    , warp
   default-language: Haskell2010
