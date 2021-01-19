@@ -1,0 +1,7 @@
+load csv
+from cities15000.txt into pgsql://luis@/geocode_city_dev
+target table raw.geonames
+  with fields terminated by '\t',
+       fields optionally enclosed by '§',
+       fields escaped by '%',
+       truncate;
