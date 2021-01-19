@@ -1,14 +1,14 @@
+begin;
 
-drop schema if exists geocode cascade;
-create schema geocode;
+create schema if not exists geocode;
 
-create table geocode.class
+create table if not exists geocode.class
  (
   class        char(1) not null primary key,
   description  text
  );
 
-create table geocode.feature
+create table if not exists geocode.feature
  (
   class       char(1) not null references geocode.class(class),
   feature     text    not null,
@@ -18,13 +18,13 @@ create table geocode.feature
   primary key(class, feature)
  );
 
-create table geocode.continent
+create table if not exists geocode.continent
  (
   code    char(2) primary key,
   name    text
  );
 
-create table geocode.country
+create table if not exists geocode.country
  (
   isocode   integer primary key,
   iso       char(2) not null,
@@ -38,7 +38,7 @@ create table geocode.country
  );
 
 
-create table geocode.neighbour
+create table if not exists geocode.neighbour
  (
   isocode   integer not null references geocode.country(isocode),
   neighbour integer not null references geocode.country(isocode),
@@ -46,7 +46,7 @@ create table geocode.neighbour
   primary key(isocode, neighbour)
  );
 
-create table geocode.region
+create table if not exists geocode.region
  (
   isocode   integer not null references geocode.country(isocode),
   regcode   text not null,
@@ -56,7 +56,7 @@ create table geocode.region
   primary key(isocode, regcode)
  );
 
-create table geocode.district
+create table if not exists geocode.district
  (
   isocode   integer not null,
   regcode   text not null,
@@ -68,3 +68,5 @@ create table geocode.district
   foreign key(isocode, regcode)
    references geocode.region(isocode, regcode)
  );
+
+commit;

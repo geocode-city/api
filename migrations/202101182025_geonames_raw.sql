@@ -27,7 +27,7 @@ create table if not exists raw.geonames
    modification      date
  );
 
-create table raw.country
+create table if not exists raw.country
  (
   iso                 text,
   iso3                text,
