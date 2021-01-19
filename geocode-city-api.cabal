@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5c985744e15bb5126749db9c17313303abdde172ab094c292a4e07d9b47aa7c2
+-- hash: 7310485dcbb46f32badc98100945f324bb27e7501d1533f8c7af79264325db5d
 
 name:           geocode-city-api
 version:        0.1.0.0
@@ -127,7 +127,6 @@ test-suite geocode-city-api-test
     , relude >=0.7.0.0 && <0.8
     , resource-pool >=0.2.3.2 && <0.3
     , servant
-    , servant-quickcheck
     , servant-server
     , servant-swagger
     , text

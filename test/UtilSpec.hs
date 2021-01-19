@@ -1,11 +1,13 @@
-{-# LANGUAGE NoImplicitPrelude #-}
 module UtilSpec (spec) where
 
 import Import
-import Util
 import Test.Hspec
 import Test.Hspec.QuickCheck
 
+plus2 :: Int -> Int
+plus2 = (+ 2)
+
+-- TODO: actual tests??
 spec :: Spec
 spec = do
   describe "plus2" $ do

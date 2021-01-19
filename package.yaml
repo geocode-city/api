@@ -78,7 +78,6 @@ tests:
     - hspec-wai
     - hspec-wai-json
     - QuickCheck
-    - servant-quickcheck
 
     build-tools:
     - hspec-discover
