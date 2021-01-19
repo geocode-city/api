@@ -1,5 +1,3 @@
-begin;
-
 create table if not exists geocode.city
   (
     geonameid bigint primary key,
@@ -30,5 +28,3 @@ create table if not exists geocode.city
    foreign key(class, feature)
     references geocode.feature(class, feature)    
   );
-
-commit;

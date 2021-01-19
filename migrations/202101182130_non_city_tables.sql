@@ -1,5 +1,3 @@
-begin;
-
 create schema if not exists geocode;
 
 create table if not exists geocode.class
@@ -68,5 +66,3 @@ create table if not exists geocode.district
   foreign key(isocode, regcode)
    references geocode.region(isocode, regcode)
  );
-
-commit;

@@ -1,5 +1,3 @@
-begin;
-
 -- this would apply English stemming and such that can lead to false negatives for foreign city names:
 --CREATE INDEX IF NOT EXISTS idx_city_ftsearch ON geocode.city USING GIN (to_tsvector('english', name || ' ' || alternatenames));
 CREATE INDEX IF NOT EXISTS idx_city_name on geocode.city(name);
@@ -13,6 +11,3 @@ create index if not exists idx_city_autocomplete on geocode.city using gin(alter
 --create index if not exists idx_city_autocomplete_fast on geocode.city using gist(name gist_trgm_ops);
 -- ^ we sacrifice storage for performance, and provide a GIN index:
 create index if not exists idx_city_autocomplete_faster on geocode.city using gin(name gin_trgm_ops);
-
-
-commit;

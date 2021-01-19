@@ -40,6 +40,15 @@ instance FromEnv AppConfig where
   -- drop the `app*` prefix that e.g. Heroku will add:
   fromEnv = gFromEnvCustom defOption {dropPrefixCount = 3}
 
+defaultConfig :: AppConfig
+defaultConfig =
+  AppConfig
+    { appPort = 3000,
+      appDeployEnv = Development,
+      appDatabaseUrl = DatabaseUrl "postgresql://localhost/geocode_city_dev?user=luis"
+    }
+
+-- | Log levels
 data LogMessage
   = Debug Text
   | Info Text
