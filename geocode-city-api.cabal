@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7310485dcbb46f32badc98100945f324bb27e7501d1533f8c7af79264325db5d
+-- hash: f4ca3a6260ee8372fb6b02ee659d98b163603a771dcaf9da297ebb9c29eab318
 
 name:           geocode-city-api
 version:        0.1.0.0
@@ -30,6 +30,7 @@ library
       Config
       Database.Migrations
       Database.Pool
+      Database.Queries
       Effects
       Effects.Database
       Effects.Log
