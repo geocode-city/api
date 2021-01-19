@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1beca677ff32d2077e16dd7ec659b7cf0fdca237f8e9154e3125227f4826ba33
+-- hash: 98f6a4cdfe69993dd54ca2c1e13b1d41f22242b6ee5fe5fa9a4013746d934a84
 
 name:           geocode-city-api
 version:        0.1.0.0
@@ -12,7 +12,7 @@ description:    Please see the README on Github at <https://github.com/lfborjas/
 homepage:       https://github.com/lfborjas/geocode-city-api#readme
 bug-reports:    https://github.com/lfborjas/geocode-city-api/issues
 author:         Luis Borjas Reyes
-maintainer:     hello@lfborjas.com
+maintainer:     geocode.city@lfborjas.com
 copyright:      Luis Borjas Reyes
 license:        BSD3
 license-file:   LICENSE
@@ -27,29 +27,36 @@ source-repository head
 
 library
   exposed-modules:
+      Config
+      Database.Migrations
+      Database.Pool
+      Effects
+      Effects.Log
       Import
-      Run
-      Types
-      Util
   other-modules:
       Paths_geocode_city_api
   hs-source-dirs:
       src
+  default-extensions: OverloadedStrings NoImplicitPrelude
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
   build-depends:
       aeson
     , base >=4.11 && <10
+    , bytestring
     , envy
+    , fused-effects >=1.1.1.0 && <1.2
     , http-api-data
     , http-types
-    , opaleye >=0.7.1.0 && <0.8
+    , optparse-applicative
     , postgresql-simple
     , postgresql-simple-migration
-    , rio >=0.1.19.0
+    , relude >=0.7.0.0 && <0.8
+    , resource-pool >=0.2.3.2 && <0.3
     , servant
     , servant-server
     , servant-swagger
     , text
+    , time
     , wai
     , warp
   default-language: Haskell2010
@@ -60,23 +67,27 @@ executable geocode-city-api-exe
       Paths_geocode_city_api
   hs-source-dirs:
       app
+  default-extensions: OverloadedStrings NoImplicitPrelude
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
     , base >=4.11 && <10
+    , bytestring
     , envy
+    , fused-effects >=1.1.1.0 && <1.2
     , geocode-city-api
     , http-api-data
     , http-types
-    , opaleye >=0.7.1.0 && <0.8
-    , optparse-simple
+    , optparse-applicative
     , postgresql-simple
     , postgresql-simple-migration
-    , rio >=0.1.19.0
+    , relude >=0.7.0.0 && <0.8
+    , resource-pool >=0.2.3.2 && <0.3
     , servant
     , servant-server
     , servant-swagger
     , text
+    , time
     , wai
     , warp
   default-language: Haskell2010
@@ -89,26 +100,34 @@ test-suite geocode-city-api-test
       Paths_geocode_city_api
   hs-source-dirs:
       test
+  default-extensions: OverloadedStrings NoImplicitPrelude
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:
+      hspec-discover:hspec-discover
   build-depends:
-      aeson
+      QuickCheck
+    , aeson
     , base >=4.11 && <10
+    , bytestring
     , envy
+    , fused-effects >=1.1.1.0 && <1.2
     , geocode-city-api
     , hspec
     , hspec-wai
     , hspec-wai-json
     , http-api-data
     , http-types
-    , opaleye >=0.7.1.0 && <0.8
+    , optparse-applicative
     , postgresql-simple
     , postgresql-simple-migration
-    , rio >=0.1.19.0
+    , relude >=0.7.0.0 && <0.8
+    , resource-pool >=0.2.3.2 && <0.3
     , servant
     , servant-quickcheck
     , servant-server
     , servant-swagger
     , text
+    , time
     , wai
     , warp
   default-language: Haskell2010
