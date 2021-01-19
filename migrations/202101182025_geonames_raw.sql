@@ -1,5 +1,3 @@
-begin;
-
 create schema if not exists raw;
 
 -- main cities table, as per:
@@ -27,7 +25,7 @@ create table if not exists raw.geonames
    modification      date
  );
 
-create table raw.country
+create table if not exists raw.country
  (
   iso                 text,
   iso3                text,
@@ -75,6 +73,3 @@ create table if not exists raw.admin2
   ascii_name text,
   geonameid  bigint
  );
-
-
-commit;

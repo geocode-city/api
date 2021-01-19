@@ -2,8 +2,9 @@
 
 ## Execute  
 
-* Run `stack exec -- geocode-city-api-exe` to see "We're inside the application!"
-* With `stack exec -- geocode-city-api-exe --verbose` you will see the same message, with more logging.
+* Run `stack run` to run the server with the default config (see `Config.hs`). You can override with environment vars: `PORT` and `DATABASE_URL`.
+* Run `stack run -- --migrate` to run any pending migrations. We endeavor to write idempotent migrations, so running it
+  _shouldn't_ affect an existing schema. 
 
 ## Run tests
 

@@ -5,12 +5,12 @@
 
 packages:
 - completed:
-    hackage: opaleye-0.7.1.0@sha256:38c3b7f33144eae428f24b277e9de7ec0c5b9dc8ed3b55c3e2078cf4acb5c893,6145
+    hackage: fused-effects-1.1.1.0@sha256:6f5cf3f2d0d61f39d97b8f63bc96564d0f64bc2801f3da828572d9f99f1e79f4,5139
     pantry-tree:
-      size: 5907
-      sha256: 97b671f28bac28a6dacad1c621059eac5667e306a406e8e8967eb204cb827aca
+      size: 6288
+      sha256: 44b34742d763dbc1922e05f2b8017a8e02a298ca66c72bb4c7b0468fea4a7254
   original:
-    hackage: opaleye-0.7.1.0
+    hackage: fused-effects-1.1.1.0@sha256:6f5cf3f2d0d61f39d97b8f63bc96564d0f64bc2801f3da828572d9f99f1e79f4,5139
 - completed:
     hackage: postgresql-simple-migration-0.1.15.0@sha256:0e24e96908430f5caf9c1c1d9ca7c5c108e4e0409a255e2cbd77e8cd252dbb02,3879
     pantry-tree:

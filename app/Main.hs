@@ -1,32 +1,33 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE TemplateHaskell #-}
-module Main (main) where
+module Main where
 
 import Import
-import Run
-import RIO.Process
-import Options.Applicative.Simple
-import qualified Paths_geocode_city_api
+import Config
+import Database.Migrations
+import Options.Applicative
+import Server.Run
+import System.Envy (decodeWithDefaults)
 
+data Opts = Opts {optMigrate :: !Bool}
+
+-- | Run server (or send the `migrate` flag to run migrations and exit)
 main :: IO ()
 main = do
-  (options, ()) <- simpleOptions
-    $(simpleVersion Paths_geocode_city_api.version)
-    "Header for command line arguments"
-    "Program description, also for command line arguments"
-    (Options
-       <$> switch ( long "verbose"
-                 <> short 'v'
-                 <> help "Verbose output?"
-                  )
-    )
-    empty
-  lo <- logOptionsHandle stderr (optionsVerbose options)
-  pc <- mkDefaultProcessContext
-  withLogFunc lo $ \lf ->
-    let app = App
-          { appLogFunc = lf
-          , appProcessContext = pc
-          , appOptions = options
-          }
-     in runRIO app run
+  appConfig <- decodeWithDefaults defaultConfig
+  opts <- execParser optsParser
+  if optMigrate opts
+    then do
+      didMigrate <- runMigrations "migrations" (appDatabaseUrl appConfig)
+      case didMigrate of
+        Left e -> putStrLn $ "Error migrating: " <> e
+        Right s -> putStrLn s
+    else start appConfig
+  where
+    -- see: https://www.fpcomplete.com/haskell/library/optparse-applicative/
+    optsParser :: ParserInfo Opts
+    optsParser =
+      info
+        (helper <*> mainOptions)
+        (fullDesc <> progDesc "Run server, or migrate")
+    mainOptions :: Parser Opts
+    mainOptions =
+      Opts <$> switch (long "migrate" <> help "Init migrations table idempotently, run missing migrations")

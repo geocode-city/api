@@ -3,7 +3,7 @@ version:             0.1.0.0
 github:              lfborjas/geocode-city-api
 license:             BSD3
 author:              Luis Borjas Reyes
-maintainer:          hello@lfborjas.com
+maintainer:          geocode.city@lfborjas.com
 copyright:           Luis Borjas Reyes
 
 extra-source-files:
@@ -21,7 +21,7 @@ description:         Please see the README on Github at <https://github.com/lfbo
 
 dependencies:
 - base >= 4.11 && < 10
-- rio >= 0.1.19.0
+- relude ^>= 0.7.0.0
 - servant
 - servant-server
 - servant-swagger
@@ -30,12 +30,15 @@ dependencies:
 - wai
 - warp
 - envy
-- opaleye >= 0.7.1.0 && < 0.8
 - postgresql-simple
 - postgresql-simple-migration
 - http-types
 - http-api-data
-
+- time
+- fused-effects ^>= 1.1.1.0
+- bytestring
+- optparse-applicative
+- resource-pool ^>= 0.2.3.2
 
 ghc-options:
 - -Wall
@@ -46,6 +49,10 @@ ghc-options:
 - -Wpartial-fields
 - -Wredundant-constraints
 
+default-extensions:
+- OverloadedStrings
+- NoImplicitPrelude
+
 library:
   source-dirs: src
 
@@ -55,7 +62,6 @@ executables:
     source-dirs:         app
     dependencies:
     - geocode-city-api
-    - optparse-simple
 
     ghc-options:
     - -threaded
@@ -71,7 +77,10 @@ tests:
     - hspec
     - hspec-wai
     - hspec-wai-json
-    - servant-quickcheck
+    - QuickCheck
+
+    build-tools:
+    - hspec-discover
 
     ghc-options:
     - -threaded
