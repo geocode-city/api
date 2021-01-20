@@ -25,12 +25,10 @@ import Import
 import qualified Network.Wai.Handler.Warp as Warp
 import Servant (Application, HasServer (hoistServerWithContext), serveWithContext, throwError)
 import Server.Handlers (service)
-import Server.Types (Service)
+import Server.Types (proxyService)
 import Server.Auth (ApiKeyAuth, authContext)
 
-proxyService :: Proxy Service
-proxyService = Proxy
-
+-- | Build a wai app with a connection pool
 application :: P.Pool PG.Connection -> Application
 application pool =
   serveWithContext proxyService authContext $
