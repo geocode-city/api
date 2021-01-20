@@ -39,6 +39,7 @@ dependencies:
 - bytestring
 - optparse-applicative
 - resource-pool ^>= 0.2.3.2
+- containers
 
 ghc-options:
 - -Wall

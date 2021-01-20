@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module Server.Run where
@@ -22,18 +23,20 @@ import Import
     (&),
   )
 import qualified Network.Wai.Handler.Warp as Warp
-import Servant (Application, hoistServer, serve, throwError)
+import Servant (Application, HasServer (hoistServerWithContext), serveWithContext, throwError)
 import Server.Handlers (service)
 import Server.Types (Service)
+import Server.Auth (ApiKeyAuth, authContext)
 
 proxyService :: Proxy Service
 proxyService = Proxy
 
 application :: P.Pool PG.Connection -> Application
 application pool =
-  serve proxyService $
-    hoistServer
+  serveWithContext proxyService authContext $
+    hoistServerWithContext
       proxyService
+      (Proxy :: Proxy '[ApiKeyAuth])
       transform
       service
   where
