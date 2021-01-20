@@ -25,6 +25,7 @@ dependencies:
 - servant
 - servant-server
 - servant-swagger
+- swagger2
 - aeson
 - text
 - wai
@@ -40,6 +41,7 @@ dependencies:
 - optparse-applicative
 - resource-pool ^>= 0.2.3.2
 - containers
+- lens
 
 ghc-options:
 - -Wall

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6c1737b57e041bdbc6f8f246421008943a7806ca6b57c8914c33fd5e9bc9f6eb
+-- hash: 2ea8f7adc7a9fef85e5db756fcdf9773275548c6dd015922fa1cc82c36e25a0e
 
 name:           geocode-city-api
 version:        0.1.0.0
@@ -54,6 +54,7 @@ library
     , fused-effects >=1.1.1.0 && <1.2
     , http-api-data
     , http-types
+    , lens
     , optparse-applicative
     , postgresql-simple
     , postgresql-simple-migration
@@ -62,6 +63,7 @@ library
     , servant
     , servant-server
     , servant-swagger
+    , swagger2
     , text
     , time
     , wai
@@ -86,6 +88,7 @@ executable geocode-city-api-exe
     , geocode-city-api
     , http-api-data
     , http-types
+    , lens
     , optparse-applicative
     , postgresql-simple
     , postgresql-simple-migration
@@ -94,6 +97,7 @@ executable geocode-city-api-exe
     , servant
     , servant-server
     , servant-swagger
+    , swagger2
     , text
     , time
     , wai
@@ -126,6 +130,7 @@ test-suite geocode-city-api-test
     , hspec-wai-json
     , http-api-data
     , http-types
+    , lens
     , optparse-applicative
     , postgresql-simple
     , postgresql-simple-migration
@@ -134,6 +139,7 @@ test-suite geocode-city-api-test
     , servant
     , servant-server
     , servant-swagger
+    , swagger2
     , text
     , time
     , wai
