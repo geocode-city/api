@@ -43,14 +43,9 @@ authHandler =
         & L.lookup "api-key"
         & fromMaybe Nothing
     handler req = either throw401 pure $ do
-      let header = maybeToEither "Missing API Key header (X-Geocode-City-Api-Key)" $ extractApiKeyHeader req
-          param = maybeToEither "Missing API Key param (api-key)" $ extractApiKeyParam req
-      case param of
-        Left _ ->
-          case header of
-            Left e -> Left e
-            Right h -> Right $ mkApiKey h
-        Right p -> Right $ mkApiKey p
+      extractApiKeyHeader req <|> extractApiKeyParam req
+      <&> mkApiKey
+      & maybeToEither "Missing API key header (X-Geocode-City-Api-Key) or query param (api-key)"
 
 authContext :: Context (ApiKeyAuth ': '[])
 authContext = authHandler :. EmptyContext
