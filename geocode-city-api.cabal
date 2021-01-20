@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2ea8f7adc7a9fef85e5db756fcdf9773275548c6dd015922fa1cc82c36e25a0e
+-- hash: 525eaceaf2e2d5cc83f923332a87f464440a973b44bfca60b8e8cce1368f11e3
 
 name:           geocode-city-api
 version:        0.1.0.0
@@ -63,7 +63,7 @@ library
     , servant
     , servant-server
     , servant-swagger
-    , swagger2
+    , swagger2 >=2.5 && <2.6
     , text
     , time
     , wai
@@ -97,7 +97,7 @@ executable geocode-city-api-exe
     , servant
     , servant-server
     , servant-swagger
-    , swagger2
+    , swagger2 >=2.5 && <2.6
     , text
     , time
     , wai
@@ -139,7 +139,7 @@ test-suite geocode-city-api-test
     , servant
     , servant-server
     , servant-swagger
-    , swagger2
+    , swagger2 >=2.5 && <2.6
     , text
     , time
     , wai
