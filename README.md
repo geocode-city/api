@@ -1,5 +1,9 @@
 # geocode-city-api
 
+![build](https://github.com/geocode-city/api/workflows/Haskell%20CI/badge.svg)
+
+
+
 ## Execute  
 
 * Run `stack run` to run the server with the default config (see `Config.hs`). You can override with environment vars: `PORT` and `DATABASE_URL`.
@@ -10,7 +14,9 @@
 
 `stack test`
 
-### SQL Notes
+## Notes
+
+### Queries
 
 (Note: the following examples use the biggest dataset: all cities with >500 population, which is around ~196,000 rows when imported:)
 
