@@ -6,6 +6,8 @@ module Import
   , lastMaybe
   , camelToSnake
   , dropPrefix
+  , between
+  , maybeBetween
   ) where
 
 -- we hide `Reader` and other mtl-isms in favor of `fused-effects` implementations
@@ -28,3 +30,11 @@ camelToSnake = camelTo2 '_'
 
 dropPrefix :: String -> String -> String
 dropPrefix p = drop (length $ p <> "_") . camelToSnake
+
+between :: Ord a => (a, a) -> a -> Bool
+between (begin, end) x =
+  x >= begin && x <= end
+
+maybeBetween :: Ord a => (a, a) -> a -> Maybe a
+maybeBetween range x =
+  if between range x then Just x else Nothing

@@ -12,7 +12,12 @@ import Data.Swagger
 import Servant.Swagger
 
 service :: AppM sig m => ServerT Service m
-service = return swaggerSpec :<|> stats :<|> autoComplete
+service =
+  return swaggerSpec
+    :<|> stats
+    :<|> autoComplete
+    :<|> search
+    :<|> reverseGeocode
 
 stats :: (AppM sig m) => ApiKey -> m Stats
 stats apiKey = validateApiKey apiKey >> do
@@ -32,6 +37,20 @@ autoComplete apiKey q limit =
   validateApiKey apiKey >> do
     results <- Q.cityAutoComplete q limit
     return $ map serializeAutocompleteResult results
+
+-- | Search city by name
+search :: (AppM sig m) => ApiKey -> Text -> Maybe Int -> m [City]
+search apiKey q limit =
+  validateApiKey apiKey >> do
+    results <- Q.citySearch q limit
+    return $ map serializeCityResult results
+
+-- | Search city by (lat, lng)
+reverseGeocode :: (AppM sig m) => ApiKey -> Latitude -> Longitude -> Maybe Int -> m [City]
+reverseGeocode apiKey lat lng limit =
+  validateApiKey apiKey >> do
+    results <- Q.reverseSearch (un lng, un lat) limit
+    return $ map serializeCityResult results
 ---
 --- Swagger
 ---
@@ -61,4 +80,20 @@ serializeAutocompleteResult Q.CityAutocompleteQ {..} =
       cityCountryCode = caCountryCode,
       cityRegion = caRegionName,
       cityDistrict = caDistrictName
+    }
+
+serializeCityResult :: Q.CityQ -> City
+serializeCityResult Q.CityQ {..} =
+  City
+    { geonamesId = cGeonameId,
+      name = cCityName,
+      longitude = cLongitude,
+      latitude = cLatitude,
+      country = cCountryName,
+      countryCode = cCountryCode,
+      region = cRegionName,
+      district = cDistrictName,
+      timezone = cTimeZone,
+      elevation = cElevation,
+      population = cPopulation
     }

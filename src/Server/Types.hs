@@ -1,3 +1,5 @@
+{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ConstraintKinds #-}
@@ -18,18 +20,28 @@ import Data.Aeson
     defaultOptions,
     genericToJSON,
   )
-import Servant (AuthProtect, Get, JSON, QueryParam, QueryParam', Required, ServerError, Strict, (:<|>), type (:>))
+import Servant (AuthProtect, FromHttpApiData (parseUrlPiece), Get, JSON, QueryParam, QueryParam', Required, ServerError, Strict, (:<|>), type (:>))
 import Servant.Server.Experimental.Auth
 import Server.Auth
 import Data.Swagger hiding (SchemaOptions (fieldLabelModifier))
 
 type StrictParam = QueryParam' '[Required, Strict]
+type ApiKeyProtect = AuthProtect "api-key"
 type ApiRoutes =
-  AuthProtect "api-key" :> "stats" :> Get '[JSON] Stats
-  :<|> AuthProtect "api-key" :> "autocomplete" 
+  ApiKeyProtect :> "stats" :> Get '[JSON] Stats
+  :<|> ApiKeyProtect :> "autocomplete" 
     :> StrictParam "q" Text 
     :> QueryParam  "limit" Int
     :> Get '[JSON] [CityAutocomplete]
+  :<|> ApiKeyProtect :> "search"
+    :> StrictParam "name" Text
+    :> QueryParam "limit" Int
+    :> Get '[JSON] [City]
+  :<|> ApiKeyProtect :> "locationSearch"
+    :> StrictParam "lat" Latitude
+    :> StrictParam "lng" Longitude
+    :> QueryParam "limit" Int
+    :> Get '[JSON] [City]
 
 type SwaggerAPI = "swagger.json" :> Get '[JSON] Swagger
 
@@ -50,6 +62,47 @@ proxyApi = Proxy
 -- from: https://docs.servant.dev/en/stable/tutorial/Authentication.html#generalized-authentication
 type instance AuthServerData (AuthProtect "api-key") = ApiKey
 
+---
+--- REQUEST TYPES
+---
+
+newtype Latitude = Latitude Double
+  deriving newtype (Eq, Show, Num, Ord)
+  deriving (ToParamSchema) via Double
+
+newtype Longitude = Longitude Double
+  deriving newtype (Eq, Show, Num, Ord)
+  deriving (ToParamSchema) via Double
+
+-- ranges from this wrong answer that turned out to be right for me:
+-- https://stackoverflow.com/a/23914607
+mkLatitude :: Double -> Maybe Latitude
+mkLatitude l =
+  maybeBetween (-90.0, 90.0) l >>= (Just . Latitude)
+
+mkLongitude :: Double -> Maybe Longitude
+mkLongitude l =
+  maybeBetween (-180.0, 180.0) l >>= (Just . Longitude)
+
+tryParse :: Read a => (a -> Maybe b) -> (Text -> Text) -> String -> Either Text b
+tryParse constructor errMsg s =
+  maybe
+    (Left $ errMsg $ toText s)
+    Right
+    (readMaybe s >>= constructor)
+
+prepend :: Text -> Text -> Text
+prepend = flip (<>)
+
+parseBounded :: Read a => (a -> Maybe b) -> Text -> Text -> Either Text b
+parseBounded ctr err a =
+  parseUrlPiece a >>= tryParse ctr (prepend err)
+
+instance FromHttpApiData Latitude where
+  parseUrlPiece = parseBounded mkLatitude " is not a valid latitude."
+
+instance FromHttpApiData Longitude where
+  parseUrlPiece = parseBounded mkLongitude " is not a valid longitude."
 ---
 --- RESPONSE TYPES
 ---
@@ -78,3 +131,23 @@ instance ToJSON CityAutocomplete where
   toJSON = genericToJSON defaultOptions {fieldLabelModifier = dropPrefix "city"}
 
 instance ToSchema CityAutocomplete
+
+data City = City
+  { geonamesId :: Int,
+    name :: Text,
+    longitude :: Double,
+    latitude :: Double,
+    country :: Maybe Text,
+    countryCode :: Maybe Text,
+    region :: Maybe Text,
+    district :: Maybe Text,
+    timezone :: Text,
+    elevation :: Maybe Int,
+    population :: Int
+  }
+  deriving (Eq, Show, Generic)
+
+instance ToJSON City where
+  toJSON = genericToJSON defaultOptions {fieldLabelModifier = camelToSnake}
+
+instance ToSchema City
