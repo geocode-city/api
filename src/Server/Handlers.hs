@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 module Server.Handlers where
 
 import Import
@@ -11,7 +12,7 @@ import Data.Swagger
 import Servant.Swagger
 
 service :: AppM sig m => ServerT Service m
-service = return swaggerSpec :<|> stats
+service = return swaggerSpec :<|> stats :<|> autoComplete
 
 stats :: (AppM sig m) => ApiKey -> m Stats
 stats apiKey = validateApiKey apiKey >> do
@@ -26,6 +27,11 @@ validateApiKey (ApiKey apiKey) = do
     then pure ()
     else throwError err403 {errBody = "Invalid API Key."}
 
+autoComplete :: (AppM sig m) => ApiKey -> Text -> Maybe Int -> m [CityAutocomplete]
+autoComplete apiKey q limit =
+  validateApiKey apiKey >> do
+    results <- Q.cityAutoComplete q limit
+    return $ map serializeAutocompleteResult results
 ---
 --- Swagger
 ---
@@ -40,3 +46,19 @@ swaggerSpec =
 -- | Output generated @swagger.json@ file for the @'TodoAPI'@.
 -- writeSwaggerJSON :: IO ()
 -- writeSwaggerJSON = BL8.writeFile "example/swagger.json" (encodePretty todoSwagger)
+
+---
+--- HELPERS
+---
+
+serializeAutocompleteResult :: Q.CityAutocompleteQ -> CityAutocomplete
+serializeAutocompleteResult Q.CityAutocompleteQ {..} =
+  CityAutocomplete
+    { cityName = caCityName,
+      cityLongitude = caLongitude,
+      cityLatitude = caLatitude,
+      cityCountry = caCountryName,
+      cityCountryCode = caCountryCode,
+      cityRegion = caRegionName,
+      cityDistrict = caDistrictName
+    }

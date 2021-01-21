@@ -1,10 +1,27 @@
+{-# LANGUAGE DeriveGeneric #-}
 module Database.Queries where
 
 import Data.Time
 import Database.PostgreSQL.Simple.Types (Only (..))
 import Effects
 import Import
+import Database.PostgreSQL.Simple (FromRow)
 
+data CityAutocompleteQ = CityAutocompleteQ
+  { caGeonameId :: Int,
+    caCityName :: Text,
+    caLongitude :: Double,
+    caLatitude :: Double,
+    caPopulation :: Int,
+    caTimeZone :: Text,
+    caCountryCode :: Maybe Text,
+    caCountryName :: Maybe Text,
+    caRegionName :: Maybe Text,
+    caDistrictName :: Maybe Text
+  }
+  deriving (Eq, Show, Generic)
+
+instance FromRow CityAutocompleteQ
 -- | Count all unique cities in the `geocode.city` database.
 cityCount :: Has Database sig m => m Int
 cityCount = do
@@ -22,6 +39,17 @@ isKeyEnabled :: Has Database sig m => Text -> m Bool
 isKeyEnabled key = do
   exists <- query "select is_enabled from account.api_key where key = ?" (Only key)
   pure $ maybe False fromOnly (listToMaybe exists)
+
+
+-- | Fast query for name autocomplete: biased towards more populous cities,
+-- doesn't order by how close the name is to the input; uses a denormalized
+-- materialized view.
+cityAutoComplete :: Has Database sig m => Text -> Maybe Int -> m [CityAutocompleteQ]
+cityAutoComplete q limit' = do
+  let limit = maybe 5 (\l -> if l > 100 then 100 else l) limit'
+  query 
+    "select * from geocode.city_autocomplete where name %> ? limit ?"
+    (q, limit)
 
 -- NOTES
 {- to run queries manually:
