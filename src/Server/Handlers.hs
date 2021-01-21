@@ -49,7 +49,7 @@ search apiKey q limit =
 reverseGeocode :: (AppM sig m) => ApiKey -> Latitude -> Longitude -> Maybe Int -> m [City]
 reverseGeocode apiKey lat lng limit =
   validateApiKey apiKey >> do
-    results <- Q.reverseSearch (un lng, un lat) limit
+    results <- Q.reverseSearch (lng, lat) limit
     return $ map serializeCityResult results
 ---
 --- Swagger

@@ -8,6 +8,7 @@ import Effects
 import Import
 import Database.PostgreSQL.Simple (FromRow)
 import Database.PostgreSQL.Simple.SqlQQ
+import Server.Types (Latitude (..), Longitude (..))
 
 -- | Represents just enough data for autocomplete use cases
 data CityAutocompleteQ = CityAutocompleteQ
@@ -101,8 +102,8 @@ citySearch q limit' = do
 -- | Same as `citySearch`, but takes a pair of longitude,latitude
 -- as input. Uses a GiST index on a POINT stored in geocode.city.location
 -- for somewhat naïve retrieval.
-reverseSearch :: Has Database sig m => (Double, Double) -> Maybe Int -> m [CityQ]
-reverseSearch (longitude, latitude) limit' = do
+reverseSearch :: Has Database sig m => (Longitude, Latitude) -> Maybe Int -> m [CityQ]
+reverseSearch (Longitude longitude, Latitude latitude) limit' = do
   let limit = defaultLimit 5 limit'
   query
     [sql|
