@@ -18,6 +18,8 @@
 
 ### Queries
 
+The base schema is based on this article, also part of the Art of PostgreSQL book: https://tapoueh.org/blog/2018/05/postgresql-data-types-point/
+
 (Note: the following examples use the biggest dataset: all cities with >500 population, which is around ~196,000 rows when imported:)
 
 We have some basic indices for trigram operations, which lead to decently fast queries (there's also an index for `alternatenames`, which can take 3x as long, but will have more hits):

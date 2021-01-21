@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 module Server.Handlers where
 
 import Import
@@ -11,7 +12,12 @@ import Data.Swagger
 import Servant.Swagger
 
 service :: AppM sig m => ServerT Service m
-service = return swaggerSpec :<|> stats
+service =
+  return swaggerSpec
+    :<|> stats
+    :<|> autoComplete
+    :<|> search
+    :<|> reverseGeocode
 
 stats :: (AppM sig m) => ApiKey -> m Stats
 stats apiKey = validateApiKey apiKey >> do
@@ -26,6 +32,25 @@ validateApiKey (ApiKey apiKey) = do
     then pure ()
     else throwError err403 {errBody = "Invalid API Key."}
 
+autoComplete :: (AppM sig m) => ApiKey -> Text -> Maybe Int -> m [CityAutocomplete]
+autoComplete apiKey q limit =
+  validateApiKey apiKey >> do
+    results <- Q.cityAutoComplete q limit
+    return $ map serializeAutocompleteResult results
+
+-- | Search city by name
+search :: (AppM sig m) => ApiKey -> Text -> Maybe Int -> m [City]
+search apiKey q limit =
+  validateApiKey apiKey >> do
+    results <- Q.citySearch q limit
+    return $ map serializeCityResult results
+
+-- | Search city by (lat, lng)
+reverseGeocode :: (AppM sig m) => ApiKey -> Latitude -> Longitude -> Maybe Int -> m [City]
+reverseGeocode apiKey lat lng limit =
+  validateApiKey apiKey >> do
+    results <- Q.reverseSearch (lng, lat) limit
+    return $ map serializeCityResult results
 ---
 --- Swagger
 ---
@@ -40,3 +65,35 @@ swaggerSpec =
 -- | Output generated @swagger.json@ file for the @'TodoAPI'@.
 -- writeSwaggerJSON :: IO ()
 -- writeSwaggerJSON = BL8.writeFile "example/swagger.json" (encodePretty todoSwagger)
+
+---
+--- HELPERS
+---
+
+serializeAutocompleteResult :: Q.CityAutocompleteQ -> CityAutocomplete
+serializeAutocompleteResult Q.CityAutocompleteQ {..} =
+  CityAutocomplete
+    { cityName = caCityName,
+      cityLongitude = caLongitude,
+      cityLatitude = caLatitude,
+      cityCountry = caCountryName,
+      cityCountryCode = caCountryCode,
+      cityRegion = caRegionName,
+      cityDistrict = caDistrictName
+    }
+
+serializeCityResult :: Q.CityQ -> City
+serializeCityResult Q.CityQ {..} =
+  City
+    { geonamesId = cGeonameId,
+      name = cCityName,
+      longitude = cLongitude,
+      latitude = cLatitude,
+      country = cCountryName,
+      countryCode = cCountryCode,
+      region = cRegionName,
+      district = cDistrictName,
+      timezone = cTimeZone,
+      elevation = cElevation,
+      population = cPopulation
+    }
