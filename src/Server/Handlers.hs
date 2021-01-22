@@ -12,6 +12,7 @@ import Data.Swagger
 import Servant.Swagger
 import Data.Time
 import Effects.Cache
+import Effects.Time (now)
 
 service :: AppM sig m => ServerT Service m
 service =
@@ -21,40 +22,75 @@ service =
     :<|> search
     :<|> reverseGeocode
 
-stats :: (AppM sig m) => ApiKey -> m Stats
+stats :: (AppM sig m) => RequestKey -> m Stats
 stats apiKey = validateApiKey apiKey >> do
   count <- Q.cityCount
   update <- Q.latestUpdate
   return $ Stats update count
 
-validateApiKey :: (AppM sig m) => ApiKey -> m ()
-validateApiKey (ApiKey apiKey) = do
-  -- example use, not really anything to write home about yet
-  count <- hllAdd "a" ["b"]
-  isValidKey <- Q.isKeyEnabled apiKey
-  if isValidKey
-    then pure ()
-    else throwError err403 {errBody = "Invalid API Key."}
-
-autoComplete :: (AppM sig m) => ApiKey -> Text -> Maybe Int -> m [CityAutocomplete]
+autoComplete :: (AppM sig m) => RequestKey -> Text -> Maybe Int -> m [CityAutocomplete]
 autoComplete apiKey q limit =
   validateApiKey apiKey >> do
     results <- Q.cityAutoComplete q limit
     return $ map serializeAutocompleteResult results
 
 -- | Search city by name
-search :: (AppM sig m) => ApiKey -> Text -> Maybe Int -> m [City]
+search :: (AppM sig m) => RequestKey -> Text -> Maybe Int -> m [City]
 search apiKey q limit =
   validateApiKey apiKey >> do
     results <- Q.citySearch q limit
     return $ map serializeCityResult results
 
 -- | Search city by (lat, lng)
-reverseGeocode :: (AppM sig m) => ApiKey -> Latitude -> Longitude -> Maybe Int -> m [City]
+reverseGeocode :: (AppM sig m) => RequestKey -> Latitude -> Longitude -> Maybe Int -> m [City]
 reverseGeocode apiKey lat lng limit =
   validateApiKey apiKey >> do
     results <- Q.reverseSearch (lng, lat) limit
     return $ map serializeCityResult results
+
+---
+--- Rate Limiting
+---
+
+-- TODO: return requests left in quota, rate limit reset timestamp
+
+-- | Rate limit based on api key: must be valid and under allocated quota in the current (UTC) month
+validateApiKey :: (AppM sig m) => RequestKey -> m ()
+validateApiKey (ByApiKey (ApiKey apiKey) (RequestID requestId)) = do
+  currentTime <- now
+  let cacheKey = "requests:" <> encodeUtf8 apiKey <> encodeUtf8 (monthString currentTime)
+  _added <- hllAdd cacheKey [requestId]
+  count <- hllCount [cacheKey]
+  -- TODO: retrieve quota from DB
+  isValidKey <- Q.isKeyEnabled apiKey
+  if isValidKey
+    then
+      if count < 100000 then
+        pure ()
+      else
+        throwError err429 {errBody = "Monthly request limit exceeded for API Key."}
+    else throwError err403 {errBody = "Invalid API Key."}
+
+-- | Rate-limit based on (real) IP: must be under 1000 requests in the current (UTC) day
+validateApiKey (ByIP (IPAddress ipAddress) (RequestID requestId)) = do
+  currentTime <- now
+  let cacheKey = "requests:" <> ipAddress <> encodeUtf8 (dayString currentTime)
+  _added <- hllAdd cacheKey [requestId]
+  count <- hllCount [cacheKey]
+  if count < 1000 then
+    pure ()
+  else
+    throwError err429 {errBody = "Daily request limit exceeded for IP Address (try using an API Key)."}
+
+
+err429 :: ServerError
+err429 = 
+  ServerError { errHTTPCode = 429
+                    , errReasonPhrase = "Too Many Requests"
+                    , errBody = ""
+                    , errHeaders = []
+                    }
+
 ---
 --- Swagger
 ---
@@ -102,8 +138,8 @@ serializeCityResult Q.CityQ {..} =
       population = cPopulation
     }
 
-hourString :: UTCTime -> String
-hourString = formatTime defaultTimeLocale "%Y-%m-%dT%H"
+dayString :: UTCTime -> String
+dayString = formatTime defaultTimeLocale "%Y-%m-%d"
 
 monthString :: UTCTime -> String
-monthString = formatTime defaultTimeLocale "%Y-%m-%d"
+monthString = formatTime defaultTimeLocale "%Y-%m"

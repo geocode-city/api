@@ -64,5 +64,6 @@ handleError err =
 start :: AppConfig -> IO ()
 start cfg = do
   pool <- DB.initPool (appDatabaseUrl cfg)
+  -- TODO: get REDIS_URL from config, parse (and fail if parsing fails)
   redis <- R.checkedConnect R.defaultConnectInfo 
   Warp.run (appPort cfg) (application redis pool)

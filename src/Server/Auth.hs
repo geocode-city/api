@@ -33,7 +33,7 @@ import Data.Swagger
     securityDefinitions,
   )
 import Servant.Swagger
-import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as B8
 
 newtype ApiKey = ApiKey Text
   deriving (Eq, Show)
@@ -41,53 +41,102 @@ newtype ApiKey = ApiKey Text
 newtype RequestID = RequestID ByteString
   deriving (Eq, Show)
 
+newtype IPAddress = IPAddress ByteString
+  deriving (Eq, Show)
+
+-- | How a request is identified for rate-limiting purposes.
 data RequestKey
-  = ByIP String RequestID
+  = ByIP IPAddress RequestID
   | ByApiKey ApiKey RequestID
   deriving (Eq, Show)
-type ApiKeyAuth = AuthHandler Request ApiKey
 
-mkApiKey :: ByteString -> ApiKey
-mkApiKey = ApiKey . decodeUtf8
+-- | Authentication (identification) by either Api Key or IP
+type ApiKeyAuth = AuthHandler Request RequestKey
 
-getLastIP :: ByteString -> Maybe ByteString
-getLastIP bs =
-  BS.split 44 bs
-    & lastMaybe
+-- | Given a handler, try to extract an identifier: either an API Key or
+-- IP Address. A little bit of Maybe blindness here: we don't really
+-- care to publicize that "anonymous" requests can be made, since the only
+-- way an IP address can't be found is outside of a production env.
 authHandler :: ApiKeyAuth
 authHandler =
   mkAuthHandler handler
   where
-    maybeToEither e = maybe (Left e) Right
     throw401 msg = throwError $ err401 {errBody = msg}
-    extractApiKeyHeader req =
-      req
-        & requestHeaders
-        & L.lookup "x-geocode-city-api-key"
-    extractApiKeyParam req =
-      req
-        & queryString
-        & L.lookup "api-key"
-        & fromMaybe Nothing
-    extractRequestId req =
-      req
-        & requestHeaders
-        & L.lookup "x-request-id"
-        <&> RequestID
-    
-    extractRequestIP req =
-      req
-        & requestHeaders
-        & L.lookup "x-forwarded-for"
-        <&> getLastIP
-        & fromMaybe Nothing
     handler req = either throw401 pure $ do
-      extractApiKeyHeader req <|> extractApiKeyParam req
-      <&> mkApiKey
+      authWithApiKey req <|> authWithIP req
       & maybeToEither "Missing API key header (X-Geocode-City-Api-Key) or query param (api-key)"
 
 authContext :: Context (ApiKeyAuth ': '[])
 authContext = authHandler :. EmptyContext
+
+
+---
+--- HELPERS
+---
+maybeToEither :: a -> Maybe b -> Either a b
+maybeToEither e = maybe (Left e) Right
+
+-- | Make an ApiKey
+mkApiKey :: ByteString -> ApiKey
+mkApiKey = ApiKey . decodeUtf8
+
+-- TODO: maybe generate a random UUID? This is only really
+-- useful for dev/test, when it's annoying to set `x-request-id`
+-- by hand
+mkRequestId :: Maybe ByteString -> Maybe RequestID
+mkRequestId Nothing = Just . RequestID $ "fake-id"
+mkRequestId rid = RequestID <$> rid 
+
+getLastIP :: ByteString -> Maybe IPAddress
+getLastIP bs =
+  B8.split ',' bs
+    & lastMaybe
+    <&> IPAddress
+
+-- | Find API Key in @X-Geocode-City-Api-Key@ header
+extractApiKeyHeader :: Request -> Maybe ByteString
+extractApiKeyHeader req =
+  req
+    & requestHeaders
+    & L.lookup "x-geocode-city-api-key"
+
+-- | Find API Key in @api-key@ querystring parameter
+extractApiKeyParam :: Request -> Maybe ByteString
+extractApiKeyParam req =
+  req
+    & queryString
+    & L.lookup "api-key"
+    & fromMaybe Nothing
+
+-- Both x-request-id and x-forwarded-for are Heroku-isms;
+-- they're not reliable (or set!) in other environments
+-- but we only use them to identify requests (not authenticate/authorize.)
+-- | Extract request ID from `x-request-id` header. Default to  
+extractRequestId :: Request -> Maybe RequestID
+extractRequestId req =
+  req
+    & requestHeaders
+    & L.lookup "x-request-id"
+    & mkRequestId
+
+extractRequestIP :: Request -> Maybe IPAddress
+extractRequestIP req =
+  req
+    & requestHeaders
+    & L.lookup "x-forwarded-for"
+    <&> getLastIP
+    & fromMaybe Nothing
+authWithApiKey :: Request -> Maybe RequestKey
+authWithApiKey req = do
+  apiKey <- mkApiKey <$> (extractApiKeyHeader req <|> extractApiKeyParam req)
+  requestID <- extractRequestId req
+  pure $ ByApiKey apiKey requestID
+
+authWithIP :: Request -> Maybe RequestKey
+authWithIP req = do
+  ip <- extractRequestIP req
+  requestID <- extractRequestId req
+  pure $ ByIP ip requestID
 
 ---
 --- Swagger instances

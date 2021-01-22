@@ -62,7 +62,7 @@ proxyApi = Proxy
 
 -- | Auth type for api keys
 -- from: https://docs.servant.dev/en/stable/tutorial/Authentication.html#generalized-authentication
-type instance AuthServerData (AuthProtect "api-key") = ApiKey
+type instance AuthServerData (AuthProtect "api-key") = RequestKey
 
 ---
 --- REQUEST TYPES
