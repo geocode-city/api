@@ -10,6 +10,8 @@ import Server.Auth
 import Control.Lens ((.~), (?~))
 import Data.Swagger
 import Servant.Swagger
+import Data.Time
+import Effects.Cache
 
 service :: AppM sig m => ServerT Service m
 service =
@@ -27,6 +29,8 @@ stats apiKey = validateApiKey apiKey >> do
 
 validateApiKey :: (AppM sig m) => ApiKey -> m ()
 validateApiKey (ApiKey apiKey) = do
+  -- example use, not really anything to write home about yet
+  count <- hllAdd "a" ["b"]
   isValidKey <- Q.isKeyEnabled apiKey
   if isValidKey
     then pure ()
@@ -97,3 +101,9 @@ serializeCityResult Q.CityQ {..} =
       elevation = cElevation,
       population = cPopulation
     }
+
+hourString :: UTCTime -> String
+hourString = formatTime defaultTimeLocale "%Y-%m-%dT%H"
+
+monthString :: UTCTime -> String
+monthString = formatTime defaultTimeLocale "%Y-%m-%d"

@@ -13,7 +13,7 @@ import Import
 import Config (LogMessage)
 import Control.Carrier.Error.Either (Throw)
 import Data.Time (Day)
-import Effects (Database, Log)
+import Effects (Cache, Database, Log, Time)
 import Data.Aeson
   ( Options (fieldLabelModifier),
     ToJSON (toJSON),
@@ -49,7 +49,9 @@ type Service = SwaggerAPI :<|> ApiRoutes
 type AppM sig m =
   ( Has (Log LogMessage) sig m,
     Has (Throw ServerError) sig m,
-    Has Database sig m
+    Has Database sig m,
+    Has Time sig m,
+    Has Cache sig m
   )
 
 proxyService :: Proxy Service

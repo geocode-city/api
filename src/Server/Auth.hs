@@ -33,15 +33,27 @@ import Data.Swagger
     securityDefinitions,
   )
 import Servant.Swagger
+import qualified Data.ByteString as BS
 
 newtype ApiKey = ApiKey Text
   deriving (Eq, Show)
 
+newtype RequestID = RequestID ByteString
+  deriving (Eq, Show)
+
+data RequestKey
+  = ByIP String RequestID
+  | ByApiKey ApiKey RequestID
+  deriving (Eq, Show)
 type ApiKeyAuth = AuthHandler Request ApiKey
 
 mkApiKey :: ByteString -> ApiKey
 mkApiKey = ApiKey . decodeUtf8
 
+getLastIP :: ByteString -> Maybe ByteString
+getLastIP bs =
+  BS.split 44 bs
+    & lastMaybe
 authHandler :: ApiKeyAuth
 authHandler =
   mkAuthHandler handler
@@ -56,6 +68,18 @@ authHandler =
       req
         & queryString
         & L.lookup "api-key"
+        & fromMaybe Nothing
+    extractRequestId req =
+      req
+        & requestHeaders
+        & L.lookup "x-request-id"
+        <&> RequestID
+    
+    extractRequestIP req =
+      req
+        & requestHeaders
+        & L.lookup "x-forwarded-for"
+        <&> getLastIP
         & fromMaybe Nothing
     handler req = either throw401 pure $ do
       extractApiKeyHeader req <|> extractApiKeyParam req

@@ -42,6 +42,7 @@ dependencies:
 - resource-pool ^>= 0.2.3.2
 - containers
 - lens
+- hedis
 
 ghc-options:
 - -Wall

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 525eaceaf2e2d5cc83f923332a87f464440a973b44bfca60b8e8cce1368f11e3
+-- hash: 5d0596bb832674fa5ce623837a77f59bb8ffde9e470b037e2efa79949410c210
 
 name:           geocode-city-api
 version:        0.1.0.0
@@ -32,8 +32,10 @@ library
       Database.Pool
       Database.Queries
       Effects
+      Effects.Cache
       Effects.Database
       Effects.Log
+      Effects.Time
       Import
       Server.Auth
       Server.Handlers
@@ -52,6 +54,7 @@ library
     , containers
     , envy
     , fused-effects >=1.1.1.0 && <1.2
+    , hedis
     , http-api-data
     , http-types
     , lens
@@ -86,6 +89,7 @@ executable geocode-city-api-exe
     , envy
     , fused-effects >=1.1.1.0 && <1.2
     , geocode-city-api
+    , hedis
     , http-api-data
     , http-types
     , lens
@@ -125,6 +129,7 @@ test-suite geocode-city-api-test
     , envy
     , fused-effects >=1.1.1.0 && <1.2
     , geocode-city-api
+    , hedis
     , hspec
     , hspec-wai
     , hspec-wai-json
