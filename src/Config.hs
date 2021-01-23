@@ -35,11 +35,15 @@ newtype DatabaseUrl = DatabaseUrl Text
   deriving newtype (Eq, Show)
   deriving (Var) via Text
 
+newtype RedisUrl = RedisUrl String
+  deriving newtype (Eq, Show)
+  deriving (Var) via String
 -- | Configuration as it comes from the environment; flat, static.
 data AppConfig = AppConfig
   { appPort :: !Int,
     appDeployEnv :: !Environment,
-    appDatabaseUrl :: !DatabaseUrl
+    appDatabaseUrl :: !DatabaseUrl,
+    appRedisUrl    :: !RedisUrl
   }
   deriving stock (Eq, Show, Generic)
 
@@ -60,7 +64,10 @@ defaultConfig =
   AppConfig
     { appPort = 3000,
       appDeployEnv = Development,
-      appDatabaseUrl = DatabaseUrl "postgresql://localhost/geocode_city_dev?user=luis"
+      appDatabaseUrl = DatabaseUrl "postgresql://localhost/geocode_city_dev?user=luis",
+      -- the underlying lib can parse the right stuff here:
+      -- https://hackage.haskell.org/package/hedis-0.14.1/docs/Database-Redis.html#v:parseConnectInfo
+      appRedisUrl = RedisUrl "redis://"
     }
 
 -- | Log levels

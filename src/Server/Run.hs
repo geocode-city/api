@@ -4,7 +4,7 @@
 
 module Server.Run where
 
-import Config (AnonAccess (..), AppConfig (..), AppContext (..), Environment (Production), renderLogMessage)
+import Config (AnonAccess (..), AppConfig (..), AppContext (..), Environment (Production), RedisUrl (..), renderLogMessage)
 import Control.Carrier.Error.Either (runError)
 import Control.Carrier.Lift (runM)
 import qualified Data.Pool as P
@@ -48,7 +48,7 @@ application appCtx =
             & runError @CacheError
             & runM
 
--- TODO: we can probably have a runCacheSafe interpreter somewhere
+-- FIXME: we can probably have a runCacheSafe interpreter somewhere
 -- that allows us to handle this deeper in, in the handlers;
 -- though maybe it's preferrable to handle it here?
 -- At the moment, it is, since we don't really care about specific
@@ -63,8 +63,9 @@ handleError err =
 start :: AppConfig -> IO ()
 start cfg = do
   pool <- DB.initPool (appDatabaseUrl cfg)
-  -- TODO: get REDIS_URL from config, parse (and fail if parsing fails)
-  redis <- R.checkedConnect R.defaultConnectInfo
+  redis <- case R.parseConnectInfo (appRedisUrl cfg & un) of
+    Left e -> fail e
+    Right connectInfo -> R.connect connectInfo
   let env = AppContext {
     ctxRedisConnection = redis
   , ctxDatabasePool = pool
