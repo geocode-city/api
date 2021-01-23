@@ -56,11 +56,12 @@ latestUpdate = do
   updatedAts <- query_ "select max(modification) from raw.geonames"
   pure $ fromOnly =<< listToMaybe updatedAts
 
--- | Given an API Key, find out if it exists and is enabled.
-isKeyEnabled :: Has Database sig m => Text -> m Bool
-isKeyEnabled key = do
-  exists <- query "select is_enabled from account.api_key where key = ?" (Only key)
-  pure $ maybe False fromOnly (listToMaybe exists)
+-- | Given an API Key, find out if it exists and is enabled;
+-- return status and current quota.
+findApiKey :: Has Database sig m => Text -> m (Bool, Maybe Integer)
+findApiKey key = do
+  exists <- query "select is_enabled, monthly_quota from account.api_key where key = ?" (Only key)
+  pure $ fromMaybe (False, Just 0) (listToMaybe exists)
 
 
 -- | Fast query for name autocomplete: biased towards more populous cities,
