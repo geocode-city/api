@@ -8,11 +8,11 @@ import Database.Queries as Q
 import Control.Carrier.Error.Either (throwError)
 import Server.Auth
 import Control.Lens ((.~), (?~))
-import Data.Swagger
+import Data.Swagger hiding (Info)
 import Servant.Swagger
 import Data.Time
-import Effects.Cache
-import Effects.Time (now)
+import Config (LogMessage (..))
+import Effects (hllAdd, hllCount, log, now)
 
 service :: AppM sig m => ServerT Service m
 service =
@@ -82,6 +82,10 @@ validateApiKey (ByIP (IPAddress ipAddress) (RequestID requestId)) = do
   else
     throwError err429 {errBody = "Daily request limit exceeded for IP Address (try using an API Key)."}
 
+-- | If given "unlimited access", don't do any rate limiting.
+validateApiKey WithUnlimitedAccess = do
+  log $ Info "Request without rate limiting"
+  pure ()
 
 err429 :: ServerError
 err429 = 

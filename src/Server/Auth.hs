@@ -35,6 +35,7 @@ import Data.Swagger
 import Servant.Swagger
 import qualified Data.ByteString.Char8 as B8
 import Data.Char (isSpace)
+import Config (AnonAccess (..))
 
 newtype ApiKey = ApiKey Text
   deriving (Eq, Show)
@@ -49,6 +50,7 @@ newtype IPAddress = IPAddress ByteString
 data RequestKey
   = ByIP IPAddress RequestID
   | ByApiKey ApiKey RequestID
+  | WithUnlimitedAccess
   deriving (Eq, Show)
 
 -- | Authentication (identification) by either Api Key or IP
@@ -58,17 +60,17 @@ type ApiKeyAuth = AuthHandler Request RequestKey
 -- IP Address. A little bit of Maybe blindness here: we don't really
 -- care to publicize that "anonymous" requests can be made, since the only
 -- way an IP address can't be found is outside of a production env.
-authHandler :: ApiKeyAuth
-authHandler =
+authHandler :: AnonAccess -> ApiKeyAuth
+authHandler anonCriterion =
   mkAuthHandler handler
   where
     throw401 msg = throwError $ err401 {errBody = msg}
     handler req = either throw401 pure $ do
-      authWithApiKey req <|> authWithIP req
+      authWithApiKey req <|> authWithIP req <|> authAnon anonCriterion
       & maybeToEither "Missing API key header (X-Geocode-City-Api-Key) or query param (api-key)"
 
-authContext :: Context (ApiKeyAuth ': '[])
-authContext = authHandler :. EmptyContext
+authContext :: AnonAccess -> Context (ApiKeyAuth ': '[])
+authContext aa = authHandler aa :. EmptyContext
 
 
 ---
@@ -159,6 +161,13 @@ authWithIP req = do
   ip <- extractRequestIP req
   requestID <- extractRequestId req
   pure $ ByIP ip requestID
+
+-- | Given an @AnonAccess@ criterion, give them "unkeyed" access,
+-- or deny. Useful for dev/test, or if you want to deploy
+-- without api key/rate limiting.
+authAnon :: AnonAccess -> Maybe RequestKey
+authAnon AlwaysAllowAnon = Just WithUnlimitedAccess
+authAnon AlwaysDenyAnon  = Nothing 
 
 ---
 --- Swagger instances

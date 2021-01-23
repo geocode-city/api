@@ -4,12 +4,11 @@
 
 module Server.Run where
 
-import Config (AppConfig (..), renderLogMessage)
+import Config (AnonAccess (..), AppConfig (..), AppContext (..), Environment (Production), renderLogMessage)
 import Control.Carrier.Error.Either (runError)
 import Control.Carrier.Lift (runM)
 import qualified Data.Pool as P
 import qualified Database.Pool as DB
-import qualified Database.PostgreSQL.Simple as PG
 import Effects
   (CacheError, runCacheWithConnection,  LogStdoutC (runLogStdout),
     reinterpretLog,
@@ -25,9 +24,9 @@ import Server.Auth (ApiKeyAuth, authContext)
 import qualified Database.Redis as R
 
 -- | Build a wai app with a connection pool
-application :: R.Connection -> P.Pool PG.Connection -> Application
-application cacheConn pool =
-  serveWithContext proxyService authContext $
+application :: AppContext -> Application
+application appCtx =
+  serveWithContext proxyService (authContext (ctxAnonAccess appCtx)) $
     hoistServerWithContext
       proxyService
       (Proxy :: Proxy '[ApiKeyAuth])
@@ -35,13 +34,13 @@ application cacheConn pool =
       service
   where
     transform handler = do
-      res <- P.withResource pool runEffects
+      res <- P.withResource (ctxDatabasePool appCtx) runEffects
       either Servant.throwError pure (handleError res)
       where
         runEffects conn =
           handler
             & runTimeIO
-            & runCacheWithConnection cacheConn
+            & runCacheWithConnection (ctxRedisConnection appCtx)
             & runDatabaseWithConnection conn
             & reinterpretLog renderLogMessage
             & runLogStdout
@@ -65,5 +64,10 @@ start :: AppConfig -> IO ()
 start cfg = do
   pool <- DB.initPool (appDatabaseUrl cfg)
   -- TODO: get REDIS_URL from config, parse (and fail if parsing fails)
-  redis <- R.checkedConnect R.defaultConnectInfo 
-  Warp.run (appPort cfg) (application redis pool)
+  redis <- R.checkedConnect R.defaultConnectInfo
+  let env = AppContext {
+    ctxRedisConnection = redis
+  , ctxDatabasePool = pool
+  , ctxAnonAccess = if Production == appDeployEnv cfg then AlwaysDenyAnon else AlwaysAllowAnon 
+  } 
+  Warp.run (appPort cfg) (application env)
