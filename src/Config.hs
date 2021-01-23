@@ -13,6 +13,9 @@ import System.Envy
     defOption,
     gFromEnvCustom,
   )
+import qualified Data.Pool as P
+import qualified Database.PostgreSQL.Simple as PG
+import qualified Database.Redis as R
 
 data Environment
   = Development
@@ -20,6 +23,10 @@ data Environment
   | Production
   deriving stock (Eq, Show, Enum, Read)
 
+data AnonAccess
+  = AlwaysDenyAnon
+  | AlwaysAllowAnon
+  deriving stock (Eq, Show)
 instance Var Environment where
   toVar = show
   fromVar = readMaybe
@@ -28,11 +35,15 @@ newtype DatabaseUrl = DatabaseUrl Text
   deriving newtype (Eq, Show)
   deriving (Var) via Text
 
+newtype RedisUrl = RedisUrl String
+  deriving newtype (Eq, Show)
+  deriving (Var) via String
 -- | Configuration as it comes from the environment; flat, static.
 data AppConfig = AppConfig
   { appPort :: !Int,
     appDeployEnv :: !Environment,
-    appDatabaseUrl :: !DatabaseUrl
+    appDatabaseUrl :: !DatabaseUrl,
+    appRedisUrl    :: !RedisUrl
   }
   deriving stock (Eq, Show, Generic)
 
@@ -40,12 +51,23 @@ instance FromEnv AppConfig where
   -- drop the `app*` prefix that e.g. Heroku will add:
   fromEnv = gFromEnvCustom defOption {dropPrefixCount = 3}
 
+-- opaque "env" to carry/specify runtime dependencies.
+data AppContext = AppContext
+  { ctxRedisConnection :: !R.Connection,
+    ctxDatabasePool :: P.Pool PG.Connection,
+    ctxAnonAccess :: !AnonAccess
+  }
+
+-- | Default app config. Override with environment variables.
 defaultConfig :: AppConfig
 defaultConfig =
   AppConfig
     { appPort = 3000,
       appDeployEnv = Development,
-      appDatabaseUrl = DatabaseUrl "postgresql://localhost/geocode_city_dev?user=luis"
+      appDatabaseUrl = DatabaseUrl "postgresql://localhost/geocode_city_dev?user=luis",
+      -- the underlying lib can parse the right stuff here:
+      -- https://hackage.haskell.org/package/hedis-0.14.1/docs/Database-Redis.html#v:parseConnectInfo
+      appRedisUrl = RedisUrl "redis://"
     }
 
 -- | Log levels

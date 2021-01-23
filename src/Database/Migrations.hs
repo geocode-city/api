@@ -5,8 +5,6 @@ import Database.PostgreSQL.Simple (connectPostgreSQL, withTransaction)
 import Database.PostgreSQL.Simple.Migration (MigrationCommand (..), MigrationContext (..), MigrationResult (..), runMigration)
 import Import
 
--- TODO(luis) we may want to take a Bool parameter to send
--- in `MigrationContext`: right now it defaults to verbose.
 runMigrations' :: Bool -> FilePath -> DatabaseUrl -> IO (Either String String)
 runMigrations' isVerbose migrationsDir (DatabaseUrl conStr) = do
   con <- connectPostgreSQL $ encodeUtf8 conStr

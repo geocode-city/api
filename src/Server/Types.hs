@@ -13,35 +13,36 @@ import Import
 import Config (LogMessage)
 import Control.Carrier.Error.Either (Throw)
 import Data.Time (Day)
-import Effects (Database, Log)
+import Effects (Cache, Database, Log, Time)
 import Data.Aeson
   ( Options (fieldLabelModifier),
     ToJSON (toJSON),
     defaultOptions,
     genericToJSON,
   )
-import Servant (AuthProtect, FromHttpApiData (parseUrlPiece), Get, JSON, QueryParam, QueryParam', Required, ServerError, Strict, (:<|>), type (:>))
-import Servant.Server.Experimental.Auth
-import Server.Auth
-import Data.Swagger hiding (SchemaOptions (fieldLabelModifier))
+import Data.Swagger (Swagger, ToParamSchema, ToSchema)
+import Data.Time.Clock.POSIX (POSIXTime)
+import Servant (AuthProtect, FromHttpApiData (parseUrlPiece), Get, Header, Headers, JSON, QueryParam, QueryParam', Required, ServerError, Strict, (:<|>), type (:>))
+import Servant.Server.Experimental.Auth (AuthServerData)
+import Server.Auth (RequestKey)
 
 type StrictParam = QueryParam' '[Required, Strict]
 type ApiKeyProtect = AuthProtect "api-key"
 type ApiRoutes =
-  ApiKeyProtect :> "stats" :> Get '[JSON] Stats
+  ApiKeyProtect :> "stats" :> Get '[JSON] (RateLimited Stats)
   :<|> ApiKeyProtect :> "autocomplete" 
     :> StrictParam "q" Text 
     :> QueryParam  "limit" Int
-    :> Get '[JSON] [CityAutocomplete]
+    :> Get '[JSON] (RateLimited [CityAutocomplete])
   :<|> ApiKeyProtect :> "search"
     :> StrictParam "name" Text
     :> QueryParam "limit" Int
-    :> Get '[JSON] [City]
+    :> Get '[JSON] (RateLimited [City])
   :<|> ApiKeyProtect :> "locationSearch"
     :> StrictParam "lat" Latitude
     :> StrictParam "lng" Longitude
     :> QueryParam "limit" Int
-    :> Get '[JSON] [City]
+    :> Get '[JSON] (RateLimited [City])
 
 type SwaggerAPI = "swagger.json" :> Get '[JSON] Swagger
 
@@ -49,7 +50,9 @@ type Service = SwaggerAPI :<|> ApiRoutes
 type AppM sig m =
   ( Has (Log LogMessage) sig m,
     Has (Throw ServerError) sig m,
-    Has Database sig m
+    Has Database sig m,
+    Has Time sig m,
+    Has Cache sig m
   )
 
 proxyService :: Proxy Service
@@ -58,10 +61,27 @@ proxyService = Proxy
 proxyApi :: Proxy ApiRoutes
 proxyApi = Proxy
 
+---
+--- INTERNAL TYPES
+---
 -- | Auth type for api keys
 -- from: https://docs.servant.dev/en/stable/tutorial/Authentication.html#generalized-authentication
-type instance AuthServerData (AuthProtect "api-key") = ApiKey
+type instance AuthServerData (AuthProtect "api-key") = RequestKey
+type RateLimited a =
+  Headers
+    '[ Header "X-RateLimit-Limit" Integer,
+       Header "X-RateLimit-Remaining" Integer,
+       Header "X-RateLimit-Resets" POSIXTime
+     ]
+    a
 
+-- Inspired by Github:
+-- https://docs.github.com/en/rest/overview/resources-in-the-rest-api#rate-limiting
+data RateLimitInfo = RateLimitInfo
+  { rateLimitTotal :: Integer,
+    rateLimitRemaining :: Integer,
+    rateLimitResets :: POSIXTime
+  }
 ---
 --- REQUEST TYPES
 ---
