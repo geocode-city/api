@@ -22,6 +22,7 @@ import Server.Handlers (service)
 import Server.Types (proxyService)
 import Server.Auth (ApiKeyAuth, authContext)
 import qualified Database.Redis as R
+import Network.Wai.Middleware.Cors
 
 -- | Build a wai app with a connection pool
 application :: AppContext -> Application
@@ -71,4 +72,11 @@ start cfg = do
   , ctxDatabasePool = pool
   , ctxAnonAccess = if Production == appDeployEnv cfg then AlwaysDenyAnon else AlwaysAllowAnon 
   } 
-  Warp.run (appPort cfg) (application env)
+  Warp.run (appPort cfg) (corsMiddleware $ application env)
+  where
+    corsMiddleware = cors $ const $ Just corsPolicy
+    corsPolicy = 
+      simpleCorsResourcePolicy {
+        corsExposedHeaders = Just $ simpleResponseHeaders <> rateLimitingHeaders
+      }
+    rateLimitingHeaders = ["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Resets"]

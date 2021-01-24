@@ -2,7 +2,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 module Database.Queries where
 
-import Data.Time
+--
 import Database.PostgreSQL.Simple.Types (Only (..))
 import Effects
 import Import
@@ -49,13 +49,6 @@ cityCount :: Has Database sig m => m Int
 cityCount = do
   counts <- query_ "select count(geonameid) from geocode.city"
   pure $ maybe 0 fromOnly (listToMaybe counts)
-
--- | Find the newest modification as downloaded from Geonames.
-latestUpdate :: Has Database sig m => m (Maybe Day)
-latestUpdate = do
-  updatedAts <- query_ "select max(modification) from raw.geonames"
-  pure $ fromOnly =<< listToMaybe updatedAts
-
 -- | Given an API Key, find out if it exists and is enabled;
 -- return status and current quota.
 findApiKey :: Has Database sig m => Text -> m (Bool, Maybe Integer)
