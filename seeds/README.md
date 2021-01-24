@@ -7,6 +7,31 @@ and unzip.
 
 For the format: http://download.geonames.org/export/dump/readme.txt
 
+### Loading data for production
+
+Currently, since the below scripts are a bit unwieldy to run in Heroku,
+I simply created a backup of a populated DB and [imported it](https://devcenter.heroku.com/articles/heroku-postgres-import-export#import)
+
+```sh
+> heroku pg:backups:restore -a geocode-city 'https://storage.googleapis.com/some-public-url' DATABASE_URL
+ ▸    WARNING: Destructive Action
+ ▸    This command will affect the app geocode-city
+ ▸    To proceed, type geocode-city or re-run this command with --confirm geocode-city
+
+> geocode-city
+Starting restore of https://storage.googleapis.com/geocode-city-backups/mydb.dump to postgresql-lively-93516... done
+
+Use Ctrl-C at any time to stop monitoring progress; the backup will continue restoring.
+Use heroku pg:backups to check progress.
+Stop a running restore with heroku pg:backups:cancel.
+
+Restoring... done
+```
+
+Because the DB is tiny (10MB), it took a little under a minute. We should ideally have
+a script to run in production to download the latest geonames definitions and load them
+appropriately!
+
 
 ### Loading cities for dev
 

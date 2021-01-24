@@ -43,6 +43,7 @@ dependencies:
 - containers
 - lens
 - hedis
+- wai-cors
 
 ghc-options:
 - -Wall
