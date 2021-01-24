@@ -10,9 +10,13 @@ For the format: http://download.geonames.org/export/dump/readme.txt
 ### Loading data for production
 
 Currently, since the below scripts are a bit unwieldy to run in Heroku,
-I simply created a backup of a populated DB and [imported it](https://devcenter.heroku.com/articles/heroku-postgres-import-export#import)
+I simply created a backup of a populated DB and [imported it](https://devcenter.heroku.com/articles/heroku-postgres-import-export#import). 
 
 ```sh
+# Note that we exclude the `raw` schema, as it's only useful for imports. Migrations
+# should be able to reconstitute it, sans data.
+> pg_dump -Fc --no-acl --no-owner -Nraw geocode_city_dev > mydb.dump
+
 > heroku pg:backups:restore -a geocode-city 'https://storage.googleapis.com/some-public-url' DATABASE_URL
  ▸    WARNING: Destructive Action
  ▸    This command will affect the app geocode-city
