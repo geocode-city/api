@@ -5,14 +5,12 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE DeriveDataTypeable #-}
 
 module Server.Types where
 
 import Import
 import Config (LogMessage)
 import Control.Carrier.Error.Either (Throw)
-import Data.Time (Day)
 import Effects (Cache, Database, Log, Time)
 import Data.Aeson
   ( Options (fieldLabelModifier),
@@ -29,8 +27,7 @@ import Server.Auth (RequestKey)
 type StrictParam = QueryParam' '[Required, Strict]
 type ApiKeyProtect = AuthProtect "api-key"
 type ApiRoutes =
-  ApiKeyProtect :> "stats" :> Get '[JSON] (RateLimited Stats)
-  :<|> ApiKeyProtect :> "autocomplete" 
+  ApiKeyProtect :> "autocomplete"
     :> StrictParam "q" Text 
     :> QueryParam  "limit" Int
     :> Get '[JSON] (RateLimited [CityAutocomplete])
@@ -126,15 +123,6 @@ instance FromHttpApiData Longitude where
 ---
 --- RESPONSE TYPES
 ---
-
-data Stats = Stats
-  { lastUpdated :: Maybe Day,
-    cityCount :: Int
-  } deriving (Eq, Show, Generic, Typeable)
-
-instance ToJSON Stats
-instance ToSchema Stats
-
 -- API representation of an autocomplete result.
 data CityAutocomplete = CityAutocomplete
   { cityName :: Text,

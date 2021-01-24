@@ -19,18 +19,11 @@ import qualified Network.HTTP.Types as N
 service :: AppM sig m => ServerT Service m
 service =
   return swaggerSpec
-    :<|> stats
     :<|> autoComplete
     :<|> search
     :<|> reverseGeocode
 
-stats :: (AppM sig m) => RequestKey -> m (RateLimited Stats)
-stats apiKey = do
-  rateLimitInfo <- checkUsage apiKey
-  count <- Q.cityCount
-  update <- Q.latestUpdate
-  return $ addRateLimitHeaders rateLimitInfo $ Stats update count
-
+-- | Autocomplete based on partial name match    
 autoComplete :: (AppM sig m) => RequestKey -> Text -> Maybe Int -> m (RateLimited [CityAutocomplete])
 autoComplete apiKey q limit = do
   rateLimitInfo <- checkUsage apiKey
