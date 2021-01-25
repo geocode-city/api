@@ -12,12 +12,7 @@ import Import
 import Config (LogMessage)
 import Control.Carrier.Error.Either (Throw)
 import Effects (Cache, Database, Log, Time)
-import Data.Aeson
-  ( Options (fieldLabelModifier),
-    ToJSON (toJSON),
-    defaultOptions,
-    genericToJSON,
-  )
+import Data.Aeson (ToJSON)
 import Data.Swagger (Swagger, ToParamSchema, ToSchema)
 import Data.Time.Clock.POSIX (POSIXTime)
 import Servant (AuthProtect, FromHttpApiData (parseUrlPiece), Get, Header, Headers, JSON, QueryParam, QueryParam', Required, ServerError, Strict, (:<|>), type (:>))
@@ -139,7 +134,5 @@ data City = City
   }
   deriving (Eq, Show, Generic)
 
-instance ToJSON City where
-  toJSON = genericToJSON defaultOptions {fieldLabelModifier = camelToSnake}
-
+instance ToJSON City
 instance ToSchema City

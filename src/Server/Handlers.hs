@@ -52,29 +52,29 @@ reverseGeocode apiKey lat lng limit = do
 -- scenario as "unlimited" and return headers indicating that, just like `WithUnlimitedAccess`
 checkUsage :: (AppM sig m) => RequestKey -> m RateLimitInfo
 checkUsage (ByApiKey (ApiKey apiKey) (RequestID requestId)) = do
-  currentTime <- now
-  let cacheKey = "requests:" <> encodeUtf8 apiKey <> ":" <> encodeUtf8 (monthString currentTime)
-  _added <- hllAdd cacheKey [requestId]
-  count <- hllCount [cacheKey]
   (isValidKey, quota) <- Q.findApiKey apiKey
-  let limit     = fromMaybe 0 quota
-      remaining = max 0 (limit - count)
-      resetsAt  = case quota of
-        Just _ -> nextMonthStart currentTime
-        Nothing -> currentTime
-      rateLimitInfo = RateLimitInfo limit remaining (resetsAt & utcTimeToPOSIXSeconds)
-  if isValidKey
-    then
-      -- no quota means unlimited (!)
-      if maybe True (count <) quota  then
-        pure rateLimitInfo
-      else
-        throwError
-          err429
-            { errBody = "Monthly request limit exceeded for API Key.",
-              errHeaders = rateLimitHeaders rateLimitInfo
-            }
-    else throwError err403 {errBody = "Invalid API Key."}
+  if not isValidKey then
+    throwError err403 {errBody = "Invalid API Key."}
+  else do
+    currentTime <- now
+    let cacheKey = "requests:" <> encodeUtf8 apiKey <> ":" <> encodeUtf8 (monthString currentTime)
+    _added <- hllAdd cacheKey [requestId]
+    count <- hllCount [cacheKey]
+    let limit     = fromMaybe 0 quota
+        remaining = max 0 (limit - count)
+        resetsAt  = case quota of
+          Just _ -> nextMonthStart currentTime
+          Nothing -> currentTime
+        rateLimitInfo = RateLimitInfo limit remaining (resetsAt & utcTimeToPOSIXSeconds)
+    -- no quota means unlimited (!)
+    if maybe True (count <) quota  then
+      pure rateLimitInfo
+    else
+      throwError
+        err429
+          { errBody = "Monthly request limit exceeded for API Key.",
+            errHeaders = rateLimitHeaders rateLimitInfo
+          }
 
 -- | Rate-limit based on (real) IP: must be under 1000 requests in the current (UTC) day
 checkUsage (ByIP (IPAddress ipAddress) (RequestID requestId)) = do
