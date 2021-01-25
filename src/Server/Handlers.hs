@@ -24,11 +24,11 @@ service =
     :<|> reverseGeocode
 
 -- | Autocomplete based on partial name match    
-autoComplete :: (AppM sig m) => RequestKey -> Text -> Maybe Int -> m (RateLimited [CityAutocomplete])
+autoComplete :: (AppM sig m) => RequestKey -> Text -> Maybe Int -> m (RateLimited [City])
 autoComplete apiKey q limit = do
   rateLimitInfo <- checkUsage apiKey
   results <- Q.cityAutoComplete q limit
-  return $ addRateLimitHeaders rateLimitInfo $ map serializeAutocompleteResult results
+  return $ addRateLimitHeaders rateLimitInfo $ map serializeCityResult results
 
 -- | Search city by name
 search :: (AppM sig m) => RequestKey -> Text -> Maybe Int -> m (RateLimited [City])
@@ -142,23 +142,10 @@ swaggerSpec =
 ---
 --- HELPERS
 ---
-
-serializeAutocompleteResult :: Q.CityAutocompleteQ -> CityAutocomplete
-serializeAutocompleteResult Q.CityAutocompleteQ {..} =
-  CityAutocomplete
-    { cityName = caCityName,
-      cityLongitude = caLongitude,
-      cityLatitude = caLatitude,
-      cityCountry = caCountryName,
-      cityCountryCode = caCountryCode,
-      cityRegion = caRegionName,
-      cityDistrict = caDistrictName
-    }
-
 serializeCityResult :: Q.CityQ -> City
 serializeCityResult Q.CityQ {..} =
   City
-    { geonamesId = cGeonameId,
+    { 
       name = cCityName,
       longitude = cLongitude,
       latitude = cLatitude,
@@ -167,7 +154,6 @@ serializeCityResult Q.CityQ {..} =
       region = cRegionName,
       district = cDistrictName,
       timezone = cTimeZone,
-      elevation = cElevation,
       population = cPopulation
     }
 

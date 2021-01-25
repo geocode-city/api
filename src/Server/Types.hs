@@ -30,7 +30,7 @@ type ApiRoutes =
   ApiKeyProtect :> "autocomplete"
     :> StrictParam "q" Text 
     :> QueryParam  "limit" Int
-    :> Get '[JSON] (RateLimited [CityAutocomplete])
+    :> Get '[JSON] (RateLimited [City])
   :<|> ApiKeyProtect :> "search"
     :> StrictParam "name" Text
     :> QueryParam "limit" Int
@@ -123,25 +123,10 @@ instance FromHttpApiData Longitude where
 ---
 --- RESPONSE TYPES
 ---
--- API representation of an autocomplete result.
-data CityAutocomplete = CityAutocomplete
-  { cityName :: Text,
-    cityLongitude :: Double,
-    cityLatitude :: Double,
-    cityCountry :: Maybe Text,
-    cityCountryCode :: Maybe Text,
-    cityRegion :: Maybe Text,
-    cityDistrict :: Maybe Text
-  }
-  deriving (Eq, Show, Generic)
 
-instance ToJSON CityAutocomplete where
-  toJSON = genericToJSON defaultOptions {fieldLabelModifier = dropPrefix "city"}
-
-instance ToSchema CityAutocomplete
-
+-- API representation of an autocomplete/search result.
 data City = City
-  { geonamesId :: Int,
+  { 
     name :: Text,
     longitude :: Double,
     latitude :: Double,
@@ -150,7 +135,6 @@ data City = City
     region :: Maybe Text,
     district :: Maybe Text,
     timezone :: Text,
-    elevation :: Maybe Int,
     population :: Int
   }
   deriving (Eq, Show, Generic)

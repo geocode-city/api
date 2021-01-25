@@ -10,24 +10,7 @@ import Database.PostgreSQL.Simple (FromRow)
 import Database.PostgreSQL.Simple.SqlQQ
 import Server.Types (Latitude (..), Longitude (..))
 
--- | Represents just enough data for autocomplete use cases
-data CityAutocompleteQ = CityAutocompleteQ
-  { caGeonameId :: Int,
-    caCityName :: Text,
-    caLongitude :: Double,
-    caLatitude :: Double,
-    caPopulation :: Int,
-    caTimeZone :: Text,
-    caCountryCode :: Maybe Text,
-    caCountryName :: Maybe Text,
-    caRegionName :: Maybe Text,
-    caDistrictName :: Maybe Text
-  }
-  deriving (Eq, Show, Generic)
 
-instance FromRow CityAutocompleteQ
-
--- | Represents a full search for a city
 data CityQ = CityQ
   { cGeonameId :: Int,
     cCityName :: Text,
@@ -35,7 +18,6 @@ data CityQ = CityQ
     cLatitude :: Double,
     cPopulation :: Int,
     cTimeZone :: Text,
-    cElevation :: Maybe Int,
     cCountryCode :: Maybe Text,
     cCountryName :: Maybe Text,
     cRegionName :: Maybe Text,
@@ -44,6 +26,8 @@ data CityQ = CityQ
   deriving (Eq, Show, Generic)
 
 instance FromRow CityQ
+
+
 -- | Count all unique cities in the `geocode.city` database.
 cityCount :: Has Database sig m => m Int
 cityCount = do
@@ -60,7 +44,7 @@ findApiKey key = do
 -- | Fast query for name autocomplete: biased towards more populous cities,
 -- doesn't order by how close the name is to the input; uses a denormalized
 -- materialized view.
-cityAutoComplete :: Has Database sig m => Text -> Maybe Int -> m [CityAutocompleteQ]
+cityAutoComplete :: Has Database sig m => Text -> Maybe Int -> m [CityQ]
 cityAutoComplete q limit' = do
   let limit = defaultLimit 5 limit'
   query 
@@ -79,7 +63,7 @@ citySearch q limit' = do
     [sql|
       select geocode.city.geonameid, geocode.city.name,
             location[0] as longitude, location[1] as latitude,
-            population, timezone, elevation,
+            population, timezone,
             geocode.country.iso as country_code,
             geocode.country.name as country_name,
             geocode.region.name as region_name,
@@ -103,7 +87,7 @@ reverseSearch (Longitude longitude, Latitude latitude) limit' = do
     [sql|
       select geocode.city.geonameid, geocode.city.name,
         location[0] as longitude, location[1] as latitude,
-        population, timezone, elevation,
+        population, timezone,
         geocode.country.iso as country_code,
         geocode.country.name as country_name,
         geocode.region.name as region_name,
