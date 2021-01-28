@@ -47,9 +47,9 @@ findApiKey key = do
 cityAutoComplete :: Has Database sig m => Text -> Maybe Int -> m [CityQ]
 cityAutoComplete q limit' = do
   let limit = defaultLimit 5 limit'
-  query 
-    "select * from geocode.city_autocomplete where name %> ? limit ?"
-    (q, limit)
+  query
+    "select * from geocode.city_autocomplete where name %> ? order by name <-> ?, population desc limit ?"
+    (q, q, limit)
 
 -- | Slightly slower, but more precise, query to find a city that
 -- partially matches a name: it looks at alternate names, and 
