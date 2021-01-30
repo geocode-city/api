@@ -70,6 +70,7 @@ RUN apt-get update && apt-get install -y libpq-dev postgresql-client-12
 RUN adduser geocode-city-api
 USER geocode-city-api
 
+COPY --from=build /opt/geocode-city-api/migrations /opt/geocode-city-api/migrations
 COPY --from=build /opt/geocode-city-api/bin /opt/geocode-city-api
 
 WORKDIR /opt/geocode-city-api

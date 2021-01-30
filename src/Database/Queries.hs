@@ -33,6 +33,8 @@ cityCount :: Has Database sig m => m Int
 cityCount = do
   counts <- query_ "select count(geonameid) from geocode.city"
   pure $ maybe 0 fromOnly (listToMaybe counts)
+
+
 -- | Given an API Key, find out if it exists and is enabled;
 -- return status and current quota.
 findApiKey :: Has Database sig m => Text -> m (Bool, Maybe Integer)
@@ -41,14 +43,30 @@ findApiKey key = do
   pure $ fromMaybe (False, Just 0) (listToMaybe exists)
 
 
--- | Fast query for name autocomplete: biased towards more populous cities,
--- doesn't order by how close the name is to the input; uses a denormalized
--- materialized view.
+-- | Fast query for name autocomplete: uses a denormalized, materialized view
+-- that precomputes city, region, district, country and alternate names
+-- in a weighted full-text search vector
+-- see:
+-- https://www.postgresql.org/docs/12/textsearch-controls.html#TEXTSEARCH-RANKING
+-- https://www.postgresql.org/docs/12/textsearch-controls.html#TEXTSEARCH-RANKING
+-- https://rob.conery.io/2019/10/29/fine-tuning-full-text-search-with-postgresql-12/
+-- Note that `web_to_tsquery_prefix` is a function we defined, to sanitize
+-- input and interpret it as a simple query where each token is a prefix.
 cityAutoComplete :: Has Database sig m => Text -> Maybe Int -> m [CityQ]
 cityAutoComplete q limit' = do
   let limit = defaultLimit 5 limit'
   query
-    "select * from geocode.city_autocomplete where name %> ? order by name <-> ?, population desc limit ?"
+    [sql|
+      select geonameid, name, longitude, latitude,
+        population, timezone, country_code,
+        country_name, region_name, district_name
+      from geocode.city_autocomplete
+      where 
+        web_to_tsquery_prefix(?) @@ autocomplete_doc
+      order by
+        ts_rank(autocomplete_doc, web_to_tsquery_prefix(?)) desc
+      limit ?
+    |]
     (q, q, limit)
 
 -- | Slightly slower, but more precise, query to find a city that
@@ -108,6 +126,7 @@ defaultLimit def =
 -- NOTES
 {- to run queries manually:
 -- stack ghci
+-- import qualified Database.PostgreSQL.Simple as PG
 λ> let (DatabaseUrl url) = defaultConfig & appDatabaseUrl
 λ> conn <- PG.connectPostgreSQL $ encodeUtf8 url
 λ> runDatabaseWithConnection conn $ Database.Queries.cityCount 
