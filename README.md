@@ -27,6 +27,31 @@ is that for the hyperloglog entries to "fall off" as we reach max memory, I'm us
 heroku redis:maxmemory REDIS-NAME --policy allkeys-lru -a geocode-city
 ```
 
+#### Database migrations (Heroku specific)
+
+I _should_ set up a [`release` phase](https://devcenter.heroku.com/articles/container-registry-and-runtime#release-phase) to [run migrations automatically](https://devcenter.heroku.com/articles/release-phase). However, I'd rather not have that overhead for something that
+happens somewhat seldom, so I instead use a [one-off dyno](https://devcenter.heroku.com/articles/container-registry-and-runtime#one-off-dynos):
+
+```sh
+> heroku run bash -a geocode-city
+Running bash on ⬢ geocode-city... up, run.7528 (Hobby)
+~ $ pwd
+/opt/geocode-city-api
+~ $ ls
+geocode-city-api-exe  migrations
+~ $ ./geocode-city-api-exe --migrate
+Initializing schema
+NOTICE:  relation "schema_migrations" already exists, skipping
+Ok:	202101182025_geonames_raw.sql
+Ok:	202101182130_non_city_tables.sql
+Ok:	202101182140_city_table.sql
+Ok:	202101182150_ft_and_indexes.sql
+Ok:	202101191900_api_keys_table.sql
+Ok:	202101201800_materialize_autocomplete.sql
+Ok:	202101231600_api_quotas.sql
+Execute:	202101301530_full_text_autocomplete.sql
+All migrations ran.
+```
 
 ## Development
 
