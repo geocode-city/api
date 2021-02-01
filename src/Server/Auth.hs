@@ -46,9 +46,13 @@ newtype RequestID = RequestID ByteString
 newtype IPAddress = IPAddress ByteString
   deriving (Eq, Show)
 
+newtype Origin = Origin ByteString
+  deriving (Eq, Show)
+
 -- | How a request is identified for rate-limiting purposes.
 data RequestKey
   = ByIP IPAddress RequestID
+  | ByOrigin Origin RequestID
   | ByApiKey ApiKey RequestID
   | WithUnlimitedAccess
   deriving (Eq, Show)
@@ -66,7 +70,10 @@ authHandler anonCriterion =
   where
     throw401 msg = throwError $ err401 {errBody = msg}
     handler req = either throw401 pure $ do
-      authWithApiKey req <|> authWithIP req <|> authAnon anonCriterion
+      authWithApiKey req 
+        <|> authWithOrigin req
+        <|> authWithIP req
+        <|> authAnon anonCriterion
       & maybeToEither "Missing API key header (X-Geocode-City-Api-Key) or query param (api-key)"
 
 authContext :: AnonAccess -> Context (ApiKeyAuth ': '[])
@@ -133,6 +140,17 @@ extractRequestId req =
     & L.lookup "x-request-id"
     <&> RequestID 
 
+-- | Extract the HTTP Origin header.
+-- we could also use Referer[sic], but Origin is now widely supported
+-- and is more applicable to our use case.
+-- https://tools.ietf.org/html/rfc6454#page-13
+extractRequestOrigin :: Request -> Maybe Origin
+extractRequestOrigin req =
+  req
+    & requestHeaders
+    & L.lookup "origin"
+    <&> Origin
+
 -- | The request IP is the "real" IP as populated by Heroku:
 -- https://devcenter.heroku.com/articles/http-routing#heroku-headers
 -- there's also [remoteHost](https://hackage.haskell.org/package/wai-3.2.3/docs/Network-Wai.html#v:remoteHost)
@@ -161,6 +179,14 @@ authWithIP req = do
   ip <- extractRequestIP req
   requestID <- extractRequestId req
   pure $ ByIP ip requestID
+
+-- | Identify a request by origin. This is only useful when a browser
+-- is making a request, since xhr clients aren't allowed to change it.
+authWithOrigin :: Request -> Maybe RequestKey
+authWithOrigin req = do
+  origin <- extractRequestOrigin req
+  requestID <- extractRequestId req
+  pure $ ByOrigin origin requestID
 
 -- | Given an @AnonAccess@ criterion, give them "unkeyed" access,
 -- or deny. Useful for dev/test, or if you want to deploy
