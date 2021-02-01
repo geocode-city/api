@@ -49,7 +49,9 @@ reverseGeocode apiKey lat lng limit = do
 ---
 -- | Rate limit based on api key: must be valid and under allocated quota in the current (UTC) month
 -- note that a given key may not have any quota set: we currently interpret that
--- scenario as "unlimited" and return headers indicating that, just like `WithUnlimitedAccess`
+-- scenario as "unlimited" and return headers indicating that, just like `WithUnlimitedAccess`.
+-- TODO(luis): add a "trusted origins" entry alongside api keys, for people who want to ensure
+-- that only websites they control are sending api-key-authenticated requests.
 checkUsage :: (AppM sig m) => RequestKey -> m RateLimitInfo
 checkUsage (ByApiKey (ApiKey apiKey) (RequestID requestId)) = do
   (isValidKey, quota) <- Q.findApiKey apiKey
@@ -76,10 +78,34 @@ checkUsage (ByApiKey (ApiKey apiKey) (RequestID requestId)) = do
             errHeaders = rateLimitHeaders rateLimitInfo
           }
 
--- | Rate-limit based on (real) IP: must be under 1000 requests in the current (UTC) day
-checkUsage (ByIP (IPAddress ipAddress) (RequestID requestId)) = do
+-- | Rate-limit based on (real) IP: must be under 1000 requests in the current (UTC) day.
+-- Useful for anonymous non-browser clients which won't include an `Origin` header.
+checkUsage (ByIP (IPAddress ipAddress) requestId) = 
+  --log (Info "Limiting by IP") >>
+  limitByClientIdentifier ipAddress requestId
+
+-- | Rate-limit based on Origin header; for browser-based clients. Same policy as per-IP.
+-- NOTE(luis) at present, nothing prevents some enterprising scripter to send a bogus
+-- Origin header with every request, circumventing ip limits. If they wish to go to these
+-- lenghts, knowing that we may add User-Agent or IP-fallback restrictions, so be it:
+-- an Api Key is free, we can talk about a higher quota if you're wiling to
+-- collaborate, why do this!
+checkUsage (ByOrigin (Origin origin) requestId) =
+  -- TODO(luis) update the Log effect to ignore log events below a certain
+  -- level, that way we don't have to comment/uncomment things!
+  --log (Info $ "Limiting by Origin: " <> decodeUtf8 origin) >>
+  limitByClientIdentifier origin requestId
+
+-- | If given "unlimited access", don't do any rate limiting.
+checkUsage WithUnlimitedAccess = do
+  log $ Info "Request without rate limiting!"
   currentTime <- now
-  let cacheKey = "requests:" <> ipAddress <> ":" <> encodeUtf8 (dayString currentTime)
+  pure $ RateLimitInfo 0 0 (currentTime & utcTimeToPOSIXSeconds)
+
+limitByClientIdentifier :: AppM sig m => ByteString -> RequestID -> m RateLimitInfo 
+limitByClientIdentifier clientIdentifier (RequestID requestId) = do
+  currentTime <- now
+  let cacheKey = "requests:" <> clientIdentifier <> ":" <> encodeUtf8 (dayString currentTime)
   _added <- hllAdd cacheKey [requestId]
   count <- hllCount [cacheKey]
   let limit = 1000
@@ -95,11 +121,6 @@ checkUsage (ByIP (IPAddress ipAddress) (RequestID requestId)) = do
           errHeaders = rateLimitHeaders rateLimitInfo
         }
 
--- | If given "unlimited access", don't do any rate limiting.
-checkUsage WithUnlimitedAccess = do
-  log $ Info "Request without rate limiting!"
-  currentTime <- now
-  pure $ RateLimitInfo 0 0 (currentTime & utcTimeToPOSIXSeconds)
 
 err429 :: ServerError
 err429 = 
