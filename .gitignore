@@ -5,3 +5,5 @@ tarballs/
 seeds/cities*
 
 .vscode
+dist-newstyle
+result
