@@ -5,21 +5,12 @@
 
 ## Deployment
 
-I personally use the [Heroku Container Registry](https://devcenter.heroku.com/articles/container-registry-and-runtime); but instead of using [their base images](https://devcenter.heroku.com/articles/heroku-20-stack#heroku-20-docker-image) (which are rather large,)
-you'll see in the `Dockerfile` that I stubbornly use `haskell` base images to build dependencies,
-and `debian:buster` for the final image -- which requires installing Postgres libraries at every step, and a very questionable `curl -k...`. I did however take some inspiration from the heroku [image Dockerfiles](https://github.com/heroku/stack-images/blob/main/heroku-20/setup.sh)
+I personally use the [Heroku Container Registry](https://devcenter.heroku.com/articles/container-registry-and-runtime). For this repository, pushes to the `main` branch will automatically
+deploy to Heroku. To manually generate a Docker image and load it locally, you can run:
 
-On a solidly average machine (8GB ram, 3 allocated to Docker,) a build takes ~30 mins from scratch, but under a minute if all dependencies have already been built and we're just recompiling the executables from Haskell source code. I try to keep dependencies small, but there's at least two heavy hitters: `lens` and `swagger2`: Docker with only 2GB was running out of memory trying to compile these behemoths, even
-with the `-j1` flag sent to Stack!
+    docker load < $(nix-build ./nix/docker.nix)
 
-For my setup, these commands do the trick:
-
-```sh
-heroku container:push web -a geocode-city
-heroku container:release web -a geocode-city
-```
-
-If you choose to use heroku, the `Dockerfile` should get you the above to work, too.
+**NOTE**: the above requires a linux environment. On my Mac, I use [linuxkit](https://github.com/nix-community/linuxkit-nix).
 
 ### Datastores
 
@@ -58,12 +49,16 @@ All migrations ran.
 
 ## Development
 
+To provide repeatable builds, I use `nix`. To build the executable, you can either enter a `nix-shell`,
+which provides a development environment (`cabal` and `haskell-language-server` are included,) or
+build the project with `nix-build ./nix/release.nix`.
+
 ### Execute  
 
-* Run `stack run` to run the server with the default config (see `Config.hs`). You can override with environment vars: `PORT` and `DATABASE_URL`.
-* Run `stack run -- --migrate` to run any pending migrations. We endeavor to write idempotent migrations, so running it
+* Run `nix-shell --run 'cabal new-run'` to run the server with the default config (see `Config.hs`). You can override with environment vars: `PORT` and `DATABASE_URL`.
+* Run `nix-shell --run 'geocode-city-api-exe --migrate'` to run any pending migrations. We endeavor to write idempotent migrations, so running it
   _shouldn't_ affect an existing schema. 
 
 ### Run tests
 
-`stack test`
+`nix-shell --run 'cabal test'`

@@ -49,11 +49,11 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
   build-depends:
       aeson
-    , base >=4.11 && <10
+    , base 
     , bytestring
     , containers
     , envy
-    , fused-effects >=1.1.1.0 && <1.2
+    , fused-effects 
     , hedis
     , http-api-data
     , http-types
@@ -61,12 +61,12 @@ library
     , optparse-applicative
     , postgresql-simple
     , postgresql-simple-migration
-    , relude >=0.7.0.0 && <0.8
-    , resource-pool >=0.2.3.2 && <0.3
+    , relude 
+    , resource-pool 
     , servant
     , servant-server
     , servant-swagger
-    , swagger2 >=2.5 && <2.6
+    , swagger2 
     , text
     , time
     , wai
@@ -84,11 +84,11 @@ executable geocode-city-api-exe
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
-    , base >=4.11 && <10
+    , base 
     , bytestring
     , containers
     , envy
-    , fused-effects >=1.1.1.0 && <1.2
+    , fused-effects 
     , geocode-city-api
     , hedis
     , http-api-data
@@ -97,12 +97,12 @@ executable geocode-city-api-exe
     , optparse-applicative
     , postgresql-simple
     , postgresql-simple-migration
-    , relude >=0.7.0.0 && <0.8
-    , resource-pool >=0.2.3.2 && <0.3
+    , relude 
+    , resource-pool 
     , servant
     , servant-server
     , servant-swagger
-    , swagger2 >=2.5 && <2.6
+    , swagger2 
     , text
     , time
     , wai
@@ -125,11 +125,11 @@ test-suite geocode-city-api-test
   build-depends:
       QuickCheck
     , aeson
-    , base >=4.11 && <10
+    , base 
     , bytestring
     , containers
     , envy
-    , fused-effects >=1.1.1.0 && <1.2
+    , fused-effects 
     , geocode-city-api
     , hedis
     , hspec
@@ -141,12 +141,12 @@ test-suite geocode-city-api-test
     , optparse-applicative
     , postgresql-simple
     , postgresql-simple-migration
-    , relude >=0.7.0.0 && <0.8
-    , resource-pool >=0.2.3.2 && <0.3
+    , relude 
+    , resource-pool 
     , servant
     , servant-server
     , servant-swagger
-    , swagger2 >=2.5 && <2.6
+    , swagger2 
     , text
     , time
     , wai

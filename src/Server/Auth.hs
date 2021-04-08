@@ -28,6 +28,7 @@ import Data.Swagger
     SecurityRequirement (..),
     SecurityScheme (..),
     SecuritySchemeType (..),
+    SecurityDefinitions (..),
     allOperations,
     security,
     securityDefinitions,
@@ -212,7 +213,7 @@ instance HasSwagger api => HasSwagger (AuthProtect "api-key" :> api) where
     where
       secs = [("ApiKeyAuth", securityScheme)]
       secReqs = [SecurityRequirement (fromList [(s, [])]) | (s, _) <- secs]
-      mkSec = id
+      mkSec = SecurityDefinitions
       securityScheme = SecurityScheme type_ (Just desc)
       type_ = SecuritySchemeApiKey (ApiKeyParams "api-key" ApiKeyQuery)
       desc = "JSON Web Token-based API key (can also be provided in the X-Geocode-City-Api-Key header.) If omitted, the client IP will be used for rate limiting."
