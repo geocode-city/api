@@ -8,7 +8,7 @@
 I personally use the [Heroku Container Registry](https://devcenter.heroku.com/articles/container-registry-and-runtime). For this repository, pushes to the `main` branch will automatically
 deploy to Heroku. To manually generate a Docker image and load it locally, you can run:
 
-    docker load <(nix-build ./nix/docker.nix)
+    docker load < $(nix-build ./nix/docker.nix)
 
 **NOTE**: the above requires a linux environment. On my Mac, I use [linuxkit](https://github.com/nix-community/linuxkit-nix).
 
