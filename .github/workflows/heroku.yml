@@ -22,10 +22,10 @@ jobs:
       env:
         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
       run: |
-        docker tag geocode-city-api:latest registry.heroku.com/geocode-city-api/web
-        docker push registry.heroku.com/geocode-city-api/web
+        docker tag geocode-city-api:latest registry.heroku.com/geocode-city/web
+        docker push registry.heroku.com/geocode-city/web
     - name:  Release
       env:
         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
       run:
-        heroku container:release web -a geocode-city-api
+        heroku container:release web -a geocode-city
