@@ -13,7 +13,6 @@
 
 module Effects.Tracing (
   Tracing(..),
-  inSpan,
   inSpan',
   module OpenTelemetry.Trace
 ) where
@@ -74,38 +73,15 @@ import OpenTelemetry.Trace
 import OpenTelemetry.Trace qualified as Trace
 
 data Tracing (m :: Type -> Type) k where
-  GetContext :: Tracing m Context.Context
-  CreateSpan :: Tracer -> Context.Context -> Text -> SpanArguments -> Tracing m Span
+  InSpan' :: forall m a. Text -> SpanArguments -> (Span -> m a) -> Tracing m a
 
-getContext :: (Has Tracing sig m) => m Context.Context
-getContext = send GetContext
-
-createSpan :: (Has Tracing sig m) => Tracer -> Context.Context -> Text -> SpanArguments -> m Span
-createSpan w x y z = send $ CreateSpan  w x y z
-
--- FIXME: this is so stupid, I'd have to literally define everytying in the API as effects, surely this can
--- be done at a higher level... I literally just don't know how to make it work when the effect receives an
--- @m a@ as an argument: can't unify n with m, blah blah
-inSpan :: (Has Tracing sig m, Has (Reader Tracer) sig m) => Text -> SpanArguments -> m a -> m a
-inSpan name args act = do
-  t <- ask @Tracer
-  ctxt <- getContext
-  span <- createSpan t ctxt name args
-  res <- act
-  pure res
-
-
-
-inSpan' :: (MonadUnliftIO m, Has (Reader Tracer) sig m) => Text -> SpanArguments -> (Span -> m a) -> m a
-inSpan' name args act = do
-  t <- ask
-  Trace.inSpan' t name args act
-
+inSpan' :: forall sig m a. (Has Tracing sig m) => Text -> SpanArguments -> (Span -> m a) -> m a
+inSpan' name args f = send $ InSpan' name args f
 
 --- CARRIERS
 
--- newtype TracingIOC m a = TracingIOC {runTracingIO :: ReaderC Tracer m a}
---   deriving (Applicative, Functor, Monad, MonadIO, MonadFail)
+newtype TracingIOC m a = TracingIOC {runTracingIO :: ReaderC Tracer m a}
+  deriving (Applicative, Functor, Monad, MonadIO, MonadFail)
 
 -- -- Orphan, there's an actual instance in the latest version of fused-effects:
 -- -- https://github.com/fused-effects/fused-effects/pull/420/files#diff-568405ead22bae1fe93c05b4c50397c0dc552943b8694ee30f53528df619a0ac
@@ -116,12 +92,23 @@ inSpan' name args act = do
 --   withRunInIO = wrappedWithRunInIO TracingIOC runTracingIO
 
 
--- runTracingWithTracer :: Tracer -> TracingIOC m hs -> m hs
--- runTracingWithTracer tracer = runReader tracer . runTracingIO
+runTracingWithTracer :: Tracer -> TracingIOC m hs -> m hs
+runTracingWithTracer tracer = runReader tracer . runTracingIO
 
--- instance
---   (MonadIO m, Algebra sig m) =>
---   Algebra (Tracing :+: sig) (TracingIOC m)
---   where
---     alg hdl sig ctx = TracingIOC $ case sig of
---       L GetTracer -> pure ask
+instance
+  forall m sig. (MonadIO m, Algebra sig m) =>
+  Algebra (Tracing :+: sig) (TracingIOC m)
+  where
+    alg hdl sig ctx = TracingIOC $ case sig of
+      L (InSpan' name args f) -> do
+        tracer <- ask
+        span <- liftIO $ do
+          ctx <- Context.getContext
+          s <- createSpanWithoutCallStack tracer ctx name args
+          --adjustContext (insertSpan s)
+          pure s
+        -- this is where I get stuck. No idea how to tell haskell that
+        -- this is supposed to be the same monad??
+        res <- lift $ f span
+        endSpan span Nothing
+        (<$ ctx) <$> res
