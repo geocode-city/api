@@ -12,6 +12,7 @@
 {-# LANGUAGE RankNTypes #-}
 
 module Effects.Tracing (
+  Tracing(..),
   inSpan,
   inSpan',
   module OpenTelemetry.Trace
@@ -22,7 +23,8 @@ import Control.Carrier.Error.Either (ErrorC, Throw, runError)
 import Control.Carrier.Reader
 import Control.Monad.IO.Unlift
 
-import OpenTelemetry.Context.ThreadLocal
+import OpenTelemetry.Context qualified as Context
+import OpenTelemetry.Context.ThreadLocal qualified as Context
 
 import Import hiding (Reader)
 import OpenTelemetry.Trace
@@ -63,7 +65,6 @@ import OpenTelemetry.Trace
       defaultSpanArguments,
       createTracerProvider,
       createSpanWithoutCallStack,
-      createSpan,
       addEvent,
       addAttributes,
       addAttribute,
@@ -72,11 +73,28 @@ import OpenTelemetry.Trace
       SpanArguments(..) )
 import OpenTelemetry.Trace qualified as Trace
 
-inSpan :: (MonadIO  m, Has (Reader Tracer) sig m) => Text -> SpanArguments -> m a -> m a
+data Tracing (m :: Type -> Type) k where
+  GetContext :: Tracing m Context.Context
+  CreateSpan :: Tracer -> Context.Context -> Text -> SpanArguments -> Tracing m Span
+
+getContext :: (Has Tracing sig m) => m Context.Context
+getContext = send GetContext
+
+createSpan :: (Has Tracing sig m) => Tracer -> Context.Context -> Text -> SpanArguments -> m Span
+createSpan w x y z = send $ CreateSpan  w x y z
+
+-- FIXME: this is so stupid, I'd have to literally define everytying in the API as effects, surely this can
+-- be done at a higher level... I literally just don't know how to make it work when the effect receives an
+-- @m a@ as an argument: can't unify n with m, blah blah
+inSpan :: (Has Tracing sig m, Has (Reader Tracer) sig m) => Text -> SpanArguments -> m a -> m a
 inSpan name args act = do
   t <- ask @Tracer
   ctxt <- getContext
-  act
+  span <- createSpan t ctxt name args
+  res <- act
+  pure res
+
+
 
 inSpan' :: (MonadUnliftIO m, Has (Reader Tracer) sig m) => Text -> SpanArguments -> (Span -> m a) -> m a
 inSpan' name args act = do

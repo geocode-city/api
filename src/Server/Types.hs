@@ -8,16 +8,17 @@
 
 module Server.Types where
 
-import Import
+import Import hiding (Reader)
 import Config (LogMessage)
 import Control.Carrier.Error.Either (Throw)
-import Effects (Cache, Database, Log, Time)
+import Effects (Cache, Database, Log, Time, Tracer)
 import Data.Aeson (ToJSON)
 import Data.Swagger (Swagger, ToParamSchema, ToSchema)
 import Data.Time.Clock.POSIX (POSIXTime)
 import Servant (AuthProtect, FromHttpApiData (parseUrlPiece), Get, Header, Headers, JSON, QueryParam, QueryParam', Required, ServerError, Strict, (:<|>), type (:>))
 import Servant.Server.Experimental.Auth (AuthServerData)
 import Server.Auth (RequestKey)
+import Control.Carrier.Reader (Reader)
 
 type StrictParam = QueryParam' '[Required, Strict]
 type ApiKeyProtect = AuthProtect "api-key"
@@ -44,7 +45,8 @@ type AppM sig m =
     Has (Throw ServerError) sig m,
     Has Database sig m,
     Has Time sig m,
-    Has Cache sig m
+    Has Cache sig m,
+    Has (Reader Tracer) sig m
   )
 
 proxyService :: Proxy Service

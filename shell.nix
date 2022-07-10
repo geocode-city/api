@@ -9,5 +9,7 @@ in
         buildInputs = [
             nixpkgs.haskellPackages.cabal-install
             nixpkgs.haskellPackages.haskell-language-server
+            nixpkgs.haskellPackages.cabal2nix
+            nixpkgs.haskellPackages.hackage-db
         ];
     }

@@ -36,6 +36,7 @@ library
       Effects.Database
       Effects.Log
       Effects.Time
+      Effects.Tracing
       Import
       Server.Auth
       Server.Handlers
@@ -72,6 +73,9 @@ library
     , wai
     , wai-cors
     , warp
+    , hs-opentelemetry-sdk
+    , unliftio
+    , unliftio-core
   default-language: Haskell2010
 
 executable geocode-city-api-exe

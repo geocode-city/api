@@ -3,6 +3,7 @@ module Effects
   , module Effects.Database
   , module Effects.Time
   , module Effects.Cache
+  , module Effects.Tracing
   )
 where
 
@@ -13,3 +14,5 @@ import Effects.Database
 import Effects.Cache
 --
 import Effects.Time
+
+import Effects.Tracing

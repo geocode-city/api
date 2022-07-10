@@ -15,8 +15,10 @@ import Config (LogMessage (..))
 import Effects (hllAdd, hllCount, log, now)
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import qualified Network.HTTP.Types as N
+import Effects.Tracing
+import Control.Monad.IO.Unlift (MonadUnliftIO)
 
-service :: AppM sig m => ServerT Service m
+service :: (MonadUnliftIO m, AppM sig m) => ServerT Service m
 service =
   return swaggerSpec
     :<|> autoComplete
@@ -24,8 +26,8 @@ service =
     :<|> reverseGeocode
 
 -- | Autocomplete based on partial name match    
-autoComplete :: (AppM sig m) => RequestKey -> Text -> Maybe Int -> m (RateLimited [City])
-autoComplete apiKey q limit = do
+autoComplete :: (AppM sig m, MonadUnliftIO m) => RequestKey -> Text -> Maybe Int -> m (RateLimited [City])
+autoComplete apiKey q limit = inSpan "autoComplete" defaultSpanArguments $ do
   rateLimitInfo <- checkUsage apiKey
   results <- Q.cityAutoComplete q limit
   return $ addRateLimitHeaders rateLimitInfo $ map serializeCityResult results

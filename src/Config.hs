@@ -16,6 +16,7 @@ import System.Envy
 import qualified Data.Pool as P
 import qualified Database.PostgreSQL.Simple as PG
 import qualified Database.Redis as R
+import OpenTelemetry.Trace (TracerProvider, Tracer)
 
 data Environment
   = Development
@@ -55,7 +56,8 @@ instance FromEnv AppConfig where
 data AppContext = AppContext
   { ctxRedisConnection :: !R.Connection,
     ctxDatabasePool :: P.Pool PG.Connection,
-    ctxAnonAccess :: !AnonAccess
+    ctxAnonAccess :: !AnonAccess,
+    ctxTracer :: !Tracer
   }
 
 -- | Default app config. Override with environment variables.

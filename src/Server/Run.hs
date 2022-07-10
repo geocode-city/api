@@ -7,6 +7,7 @@ module Server.Run where
 import Config (AnonAccess (..), AppConfig (..), AppContext (..), Environment (Production), RedisUrl (..), renderLogMessage)
 import Control.Carrier.Error.Either (runError)
 import Control.Carrier.Lift (runM)
+import Control.Carrier.Reader (runReader)
 import qualified Data.Pool as P
 import qualified Database.Pool as DB
 import Effects
@@ -23,6 +24,9 @@ import Server.Types (proxyService)
 import Server.Auth (ApiKeyAuth, authContext)
 import qualified Database.Redis as R
 import Network.Wai.Middleware.Cors
+import OpenTelemetry.Trace (initializeGlobalTracerProvider, makeTracer, tracerOptions, Tracer)
+import Effects.Tracing (shutdownTracerProvider)
+import Control.Exception (bracket)
 
 -- | Build a wai app with a connection pool
 application :: AppContext -> Application
@@ -35,8 +39,8 @@ application appCtx =
       service
   where
     transform handler = do
-      res <- P.withResource (ctxDatabasePool appCtx) runEffects
-      either Servant.throwError pure (handleError res)
+      response <- P.withResource (ctxDatabasePool appCtx) runEffects
+      either Servant.throwError pure (handleError response)
       where
         runEffects conn =
           handler
@@ -47,6 +51,7 @@ application appCtx =
             & runLogStdout
             & runError @ServerError
             & runError @CacheError
+            & runReader (ctxTracer appCtx)
             & runM
 
 -- FIXME: we can probably have a runCacheSafe interpreter somewhere
@@ -61,8 +66,8 @@ handleError err =
     Right s -> s
 
 -- | Given config, start the app
-start :: AppConfig -> IO ()
-start cfg = do
+start' :: Tracer -> AppConfig -> IO ()
+start' tracer cfg = do
   pool <- DB.initPool (appDatabaseUrl cfg)
   redis <- case R.parseConnectInfo (appRedisUrl cfg & un) of
     Left e -> fail e
@@ -70,7 +75,8 @@ start cfg = do
   let env = AppContext {
     ctxRedisConnection = redis
   , ctxDatabasePool = pool
-  , ctxAnonAccess = if Production == appDeployEnv cfg then AlwaysDenyAnon else AlwaysAllowAnon 
+  , ctxAnonAccess = if Production == appDeployEnv cfg then AlwaysDenyAnon else AlwaysAllowAnon
+  , ctxTracer = tracer
   } 
   Warp.run (appPort cfg) (corsMiddleware $ application env)
   where
@@ -80,3 +86,15 @@ start cfg = do
         corsExposedHeaders = Just $ simpleResponseHeaders <> rateLimitingHeaders
       }
     rateLimitingHeaders = ["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Resets"]
+
+start :: AppConfig -> IO ()
+start cfg = withTracer $ \tracer -> do
+ start' tracer cfg
+ where
+   withTracer f = bracket
+     initializeGlobalTracerProvider
+     shutdownTracerProvider
+     (\tracerProvider -> do
+         let tracer = makeTracer tracerProvider "geocode-city" tracerOptions
+         f tracer
+     )
