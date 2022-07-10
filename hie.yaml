@@ -1,0 +1,13 @@
+cradle:
+  cabal:
+    - path: "src"
+      component: "lib:geocode-city-api"
+
+    - path: "app/Main.hs"
+      component: "geocode-city-api:exe:geocode-city-api-exe"
+
+    - path: "app/Paths_geocode_city_api.hs"
+      component: "geocode-city-api:exe:geocode-city-api-exe"
+
+    - path: "test"
+      component: "geocode-city-api:test:geocode-city-api-test"
