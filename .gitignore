@@ -7,3 +7,5 @@ seeds/cities*
 .vscode
 dist-newstyle
 result
+.direnv
+.envrc
